@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { PlusIcon, TrashIcon } from 'lucide-react';
 import axios from 'axios';
@@ -13,6 +13,7 @@ type TicketType = {
 const HostEventForm: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
 
   const isEditMode = !!eventId;
@@ -124,7 +125,11 @@ const HostEventForm: React.FC = () => {
 
       if (response.status === 201 || response.status === 200) {
         setMessage('✅ Event created successfully! Awaiting admin approval.');
-        setTimeout(() => navigate('/host-dashboard/events'), 1500);
+
+        // Redirect back to HostDashboard and pass refresh signal
+        setTimeout(() => {
+          navigate('/host-dashboard/events', { state: { refresh: true } });
+        }, 500);
       } else {
         setMessage('⚠️ Something went wrong. Please try again.');
       }
