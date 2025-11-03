@@ -3,20 +3,21 @@ import React, { useEffect, useState, createContext, useContext, ReactNode } from
 
 interface User {
   email: string;
-  name: string;
+  name: string; // Note: 'name' seems redundant with 'full_name' in your register function, but kept for type match.
   full_name: string;
   id: string | number;
   user_type: 'user' | 'host';
+  // token is no longer part of the User object itself, but stored separately
 }
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
+  authToken: string | null; // Renamed from 'token' to 'authToken' for consistency
   login: (email: string, password: string) => Promise<void>;
   register: (full_name: string, email: string, password: string, user_type: 'user' | 'host') => Promise<void>;
   logout: () => void;
   isLoading: boolean; // For tracking login/register action status
-  isAuthLoading: boolean; // ✅ Added for initial auth check status
+  isAuthLoading: boolean; // For initial auth check status
   error: string | null;
 }
 
@@ -24,9 +25,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [authToken, setAuthToken] = useState<string | null>(null); // Renamed state variable
   const [isLoading, setIsLoading] = useState(false); // Action loading (login/register)
-  const [isAuthLoading, setIsAuthLoading] = useState(true); // ✅ Initial authentication loading
+  const [isAuthLoading, setIsAuthLoading] = useState(true); // Initial authentication loading
   const [error, setError] = useState<string | null>(null);
   // const navigate = useNavigate(); // Removed useNavigate from context
 
@@ -36,14 +37,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const storedToken = localStorage.getItem('token');
         if (storedUser && storedToken) {
             setUser(JSON.parse(storedUser));
-            setToken(storedToken);
+            setAuthToken(storedToken); // Use authToken state
         }
-        setIsAuthLoading(false); // ✅ Set loading false after check
+        setIsAuthLoading(false); // Set loading false after check
     };
     initializeAuth();
   }, []);
 
-  // ✅ LOGIN
+  // LOGIN
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     setError(null);
@@ -60,12 +61,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       setUser(data.user);
-      setToken(data.token);
+      setAuthToken(data.token); // Use authToken state
       localStorage.setItem('user', JSON.stringify(data.user));
       localStorage.setItem('token', data.token);
 
-      // ❌ Removed navigation logic from here. 
-      // It should be handled in LoginPage.tsx after calling login().
+      // Navigation should be handled in LoginPage.tsx after calling login().
 
     } catch (err: any) {
       console.error('Login failed:', err);
@@ -76,7 +76,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // ✅ REGISTER
+  // REGISTER
   const register = async (full_name: string, email: string, password: string, user_type: 'user' | 'host') => {
     setIsLoading(true);
     setError(null);
@@ -87,12 +87,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         body: JSON.stringify({ full_name, email, password, user_type }),
       });
 
-      const data = await response.json();
       if (!response.ok) {
+        const data = await response.json();
         throw new Error(data.message || 'Registration failed');
       }
 
-      // navigate('/login'); // Should be handled by RegisterPage after successful call
+      // Should be handled by RegisterPage after successful call
     } catch (err: any) {
       console.error('Registration failed:', err);
       setError(err.message || 'Registration failed');
@@ -102,17 +102,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // ✅ LOGOUT
+  // LOGOUT
   const logout = () => {
     setUser(null);
-    setToken(null);
+    setAuthToken(null); // Use authToken state
     localStorage.removeItem('user');
     localStorage.removeItem('token');
-    // navigate('/login'); // Should be handled by Header/Logout component
+    // Navigation should be handled by Header/Logout component
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, isLoading, isAuthLoading, error }}>
+    <AuthContext.Provider value={{ user, authToken, login, register, logout, isLoading, isAuthLoading, error }}>
       {children}
     </AuthContext.Provider>
   );

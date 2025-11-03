@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { PlusIcon, TrashIcon } from 'lucide-react';
 import axios from 'axios';
@@ -13,8 +13,8 @@ type TicketType = {
 const HostEventForm: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
-  const location = useLocation();
-  const { user } = useAuth();
+  // We need both user and authToken now
+  const { user, authToken } = useAuth();
 
   const isEditMode = !!eventId;
 
@@ -97,6 +97,14 @@ const HostEventForm: React.FC = () => {
     e.preventDefault();
     if (!validateForm()) return;
 
+    // IMPORTANT: Check if the user object and its token exist before making the API call
+    // Use the separate authToken from the context
+    if (!user || !authToken) {
+        setMessage('❌ User not authenticated. Please log in again.');
+        setIsSubmitting(false);
+        return;
+    }
+
     setIsSubmitting(true);
     setMessage('');
 
@@ -110,15 +118,19 @@ const HostEventForm: React.FC = () => {
         date: dateOnly,
         location: formData.location,
         poster: formData.poster,
-        host_name: (user as any)?.name || (user as any)?.full_name || 'Unknown Host',
+        host_name: user?.full_name || 'Unknown Host',
         ticket_types: ticketTypes.map(t => ({
           name: t.name,
           price: t.price,
         })),
       };
-
+      
+      // ✅ Updated axios.post call to include the Authorization header using authToken
       const response = await axios.post('http://127.0.0.1:8000/api/events/', eventData, {
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`, // Use authToken here
+        },
       });
 
       console.log('✅ Event created:', response.data);
@@ -135,7 +147,12 @@ const HostEventForm: React.FC = () => {
       }
     } catch (err: any) {
       console.error('❌ Error saving event:', err.response?.data || err.message || err);
-      setMessage('❌ Failed to create event. Check console for details.');
+      // More descriptive error handling if needed
+      if (err.response?.status === 401 || err.response?.status === 403) {
+          setMessage('❌ Authentication failed. Please log in again.');
+      } else {
+          setMessage('❌ Failed to create event. Check console for details.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -233,63 +250,57 @@ const HostEventForm: React.FC = () => {
             {errors.location && <p className="text-sm text-red-600">{errors.location}</p>}
           </div>
 
-          {/* Ticket Types */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Ticket Types*</label>
-            {ticketTypes.map((ticket, i) => (
-              <div key={ticket.id} className="flex items-center space-x-2 mb-2">
+          {/* Ticket Types Management */}
+          <div className="mt-4">
+            <h3 className="text-lg font-semibold mb-3">Ticket Types</h3>
+            {ticketTypes.map((ticket, index) => (
+              <div key={ticket.id} className="flex gap-4 mb-3 items-center">
                 <input
                   type="text"
+                  placeholder="Ticket Name (e.g., VIP, Early Bird)"
                   value={ticket.name}
-                  placeholder="Ticket Name"
-                  onChange={e => handleTicketChange(i, 'name', e.target.value)}
-                  className="border px-2 py-1 rounded-md"
+                  onChange={e => handleTicketChange(index, 'name', e.target.value)}
+                  className={`flex-1 px-4 py-2 border rounded-md ${
+                    errors[`ticket-${index}-name`] ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 />
                 <input
                   type="number"
-                  min="0"
-                  value={ticket.price}
                   placeholder="Price"
-                  onChange={e => handleTicketChange(i, 'price', e.target.value)}
-                  className="border px-2 py-1 rounded-md"
+                  value={ticket.price}
+                  onChange={e => handleTicketChange(index, 'price', e.target.value)}
+                  className={`w-32 px-4 py-2 border rounded-md ${
+                    errors[`ticket-${index}-price`] ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 />
-                {ticketTypes.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeTicketType(i)}
-                    className="text-red-600"
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => removeTicketType(index)}
+                  disabled={ticketTypes.length === 1}
+                  className="p-2 text-gray-500 hover:text-red-600 disabled:opacity-50 transition"
+                  title="Remove ticket type"
+                >
+                  <TrashIcon className="h-5 w-5" />
+                </button>
               </div>
             ))}
             <button
               type="button"
               onClick={addTicketType}
-              className="flex items-center text-indigo-600 mt-2"
+              className="mt-2 text-indigo-600 hover:text-indigo-800 flex items-center"
             >
-              <PlusIcon className="h-4 w-4 mr-1" /> Add Ticket
+              <PlusIcon className="h-4 w-4 mr-1" /> Add another ticket type
             </button>
           </div>
 
-          {/* Buttons */}
-          <div className="flex justify-end space-x-4">
-            <button
-              type="button"
-              onClick={() => navigate('/host-dashboard/events')}
-              className="px-4 py-2 border rounded-md"
-            >
-              Cancel
-            </button>
+          {/* Submit Button */}
+          <div className="mt-6">
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`px-4 py-2 rounded-md text-white ${
-                isSubmitting ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'
-              }`}
+              className="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:bg-indigo-400 transition"
             >
-              {isEditMode ? 'Update Event' : 'Create Event'}
+              {isSubmitting ? 'Saving Event...' : (isEditMode ? 'Update Event' : 'Create Event')}
             </button>
           </div>
         </form>
