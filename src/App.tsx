@@ -35,9 +35,9 @@ export function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
 
-              {/* 🏠 Dashboards */}
+              {/* 🏠 Dashboards (Use wildcard for nested routes) */}
               <Route
-                path="/host-dashboard/*"
+                path="/host-dashboard/*" // ✅ Reverted to wildcard to support nested navigation
                 element={
                   <ProtectedRoute role="host">
                     <HostDashboard />
@@ -46,7 +46,7 @@ export function App() {
               />
 
               <Route
-                path="/user-dashboard/*"
+                path="/user-dashboard"
                 element={
                   <ProtectedRoute role="user">
                     <UserDashboard />
@@ -54,7 +54,7 @@ export function App() {
                 }
               />
 
-              {/* 📅 Host Events List */}
+              {/* 📅 Host Events List (Can likely be removed if HostDashboard manages this path internally) */}
               <Route
                 path="/host/events"
                 element={
@@ -75,7 +75,7 @@ export function App() {
               />
 
               {/* 🧭 Fallback */}
-              <Route path="*" element={<Navigate to="/" />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>
           <Footer />
@@ -88,10 +88,9 @@ export function App() {
 function RedirectBasedOnRole() {
   const { user } = useAuth();
 
-  if (!user) return <Navigate to="/login" replace />;
-
-  if (user.user_type === 'host') return <Navigate to="/host-dashboard" replace />;
-  if (user.user_type === 'user') return <Navigate to="/user-dashboard" replace />;
+  // Note: ProtectedRoute handles the !user case now.
+  if (user?.user_type === 'host') return <Navigate to="/host-dashboard" replace />;
+  if (user?.user_type === 'user') return <Navigate to="/user-dashboard" replace />;
 
   return <Navigate to="/" replace />;
 }

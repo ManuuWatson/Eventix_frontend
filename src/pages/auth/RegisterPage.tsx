@@ -1,4 +1,4 @@
-// ✅ RegisterPage.tsx – Final Clean Version (Django + user_type only)
+// ✅ RegisterPage.tsx – Final Version (No token on register, redirect to login)
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { UserIcon, MailIcon, LockIcon, EyeIcon, EyeOffIcon } from "lucide-react";
@@ -50,19 +50,20 @@ const RegisterPage: React.FC = () => {
         user_type: form.user_type,
       });
 
-      if (response.status === 201) {
+      if (response.status === 201 || response.status === 200) {
         setSuccessMessage("🎉 Registration successful! Redirecting to login...");
-        setTimeout(() => navigate("/login"), 2500);
+        setTimeout(() => navigate("/login"), 2000);
       } else {
         setFormError("Unexpected response from server. Please try again.");
       }
     } catch (error: any) {
       console.error("Registration failed:", error);
 
-      // Handle backend validation errors
       const backendError =
-        error.response?.data?.error ||
-        error.response?.data?.message ||
+        error.response?.data?.email?.[0] ||
+        error.response?.data?.password?.[0] ||
+        error.response?.data?.user_type?.[0] ||
+        error.response?.data?.detail ||
         "Registration failed. Please check your input and try again.";
 
       setFormError(backendError);

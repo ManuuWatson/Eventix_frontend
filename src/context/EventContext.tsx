@@ -18,6 +18,7 @@ interface EventData {
   payment_methods: string[];
   ticket_types: TicketType[];
   host_name: string;
+  hostId?: string | number;
   status: 'Pending Approval' | 'Approved' | 'Rejected';
 }
 

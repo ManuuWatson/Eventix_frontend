@@ -1,9 +1,11 @@
 import React, { useEffect, useState, createContext, useContext, ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom'; // Removed useNavigate from context
 
 interface User {
   email: string;
+  name: string;
   full_name: string;
+  id: string | number;
   user_type: 'user' | 'host';
 }
 
@@ -13,7 +15,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (full_name: string, email: string, password: string, user_type: 'user' | 'host') => Promise<void>;
   logout: () => void;
-  isLoading: boolean;
+  isLoading: boolean; // For tracking login/register action status
+  isAuthLoading: boolean; // ✅ Added for initial auth check status
   error: string | null;
 }
 
@@ -22,17 +25,22 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // Action loading (login/register)
+  const [isAuthLoading, setIsAuthLoading] = useState(true); // ✅ Initial authentication loading
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
+  // const navigate = useNavigate(); // Removed useNavigate from context
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    const storedToken = localStorage.getItem('token');
-    if (storedUser && storedToken) {
-      setUser(JSON.parse(storedUser));
-      setToken(storedToken);
-    }
+    const initializeAuth = () => {
+        const storedUser = localStorage.getItem('user');
+        const storedToken = localStorage.getItem('token');
+        if (storedUser && storedToken) {
+            setUser(JSON.parse(storedUser));
+            setToken(storedToken);
+        }
+        setIsAuthLoading(false); // ✅ Set loading false after check
+    };
+    initializeAuth();
   }, []);
 
   // ✅ LOGIN
@@ -56,15 +64,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('user', JSON.stringify(data.user));
       localStorage.setItem('token', data.token);
 
-      // ✅ Redirect user based on role
-      if (data.user.user_type === 'host') {
-        navigate('/host-dashboard');
-      } else {
-        navigate('/user-dashboard');
-      }
+      // ❌ Removed navigation logic from here. 
+      // It should be handled in LoginPage.tsx after calling login().
+
     } catch (err: any) {
       console.error('Login failed:', err);
       setError(err.message || 'Login failed');
+      throw err; // Re-throw so LoginPage can catch and handle navigation fallback
     } finally {
       setIsLoading(false);
     }
@@ -86,10 +92,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(data.message || 'Registration failed');
       }
 
-      navigate('/login');
+      // navigate('/login'); // Should be handled by RegisterPage after successful call
     } catch (err: any) {
       console.error('Registration failed:', err);
       setError(err.message || 'Registration failed');
+      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -101,11 +108,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setToken(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');
-    navigate('/login');
+    // navigate('/login'); // Should be handled by Header/Logout component
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, isLoading, error }}>
+    <AuthContext.Provider value={{ user, token, login, register, logout, isLoading, isAuthLoading, error }}>
       {children}
     </AuthContext.Provider>
   );

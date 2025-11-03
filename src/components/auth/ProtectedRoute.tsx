@@ -8,16 +8,26 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, role }: ProtectedRouteProps) => {
-  const { user } = useAuth();
+  // ✅ Use isAuthLoading from the context
+  const { user, isAuthLoading } = useAuth(); 
 
+  // ✅ Wait until authentication check is complete
+  if (isAuthLoading) {
+    return <p>Checking authentication...</p>; 
+  }
+
+  // If loading is done and there is no user, navigate to login
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
+  // Check role if specified
   if (role && user.user_type !== role) {
+    // If the role doesn't match, send them to the home page (EventsPage)
     return <Navigate to="/" replace />;
   }
 
+  // Otherwise, render the children (HostDashboard or UserDashboard)
   return <>{children}</>;
 };
 

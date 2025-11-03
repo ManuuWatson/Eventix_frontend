@@ -1,46 +1,49 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { MailIcon, LockIcon, EyeIcon, EyeOffIcon } from "lucide-react";
-import axiosInstance from "../../api/axiosInstance";
+// import axiosInstance from "../../api/axiosInstance"; // Not needed here anymore if using context login
+import { useAuth } from "../../context/AuthContext"; // ✅ Import useAuth
 
 const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  // const [isLoading, setIsLoading] = useState(false); // Use isLoading from context
   const navigate = useNavigate();
+  const { login, isLoading } = useAuth(); // ✅ Destructure login and isLoading from context
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setIsLoading(true);
+    // setIsLoading(true); // Handled by context's internal state
 
     try {
-      const response = await axiosInstance.post("users/login/", { email, password });
+      // ✅ Call the context's login function
+      await login(email, password);
 
-      if (response.data.success) {
-        const { token, user } = response.data;
-        localStorage.setItem("token", token);
-        localStorage.setItem("user_type", user.user_type);
+      // We removed navigation from the context, so we handle it here:
+      // Read the user type from localStorage immediately after successful login
+      const userType = localStorage.getItem('user_type') || (JSON.parse(localStorage.getItem('user') || '{}')).user_type;
 
-        // ✅ Redirect based on selected account type
-        if (user.user_type === "host") {
-          navigate("/host/dashboard");
-        } else if (user.user_type === "user") {
-          navigate("/user/dashboard");
-        } else {
-          navigate("/"); // fallback
-        }
+      if (userType === "host") {
+          navigate("/host-dashboard", { replace: true });
+      } else if (userType === "user") {
+          navigate("/user-dashboard", { replace: true });
       } else {
-        setError(response.data.message || "Login failed.");
+          // Fallback if user type isn't clear
+          navigate("/", { replace: true });
       }
+
+
     } catch (err: any) {
       console.error("Login error:", err);
-      setError(err.response?.data?.message || "Login failed.");
-    } finally {
-      setIsLoading(false);
-    }
+      // The context login function throws an error object
+      setError(err.message || "Invalid email or password.");
+    } 
+    // finally {
+    //   setIsLoading(false); // Handled by context's internal state
+    // }
   };
 
   return (
@@ -54,9 +57,9 @@ const LoginPage: React.FC = () => {
           </p>
         </div>
 
-        {error && (
+        {(error || useAuth().error) && ( // Check local error or context error
           <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-md text-sm text-red-700">
-            {error}
+            {error || useAuth().error}
           </div>
         )}
 
@@ -103,10 +106,7 @@ const LoginPage: React.FC = () => {
 
         <p className="text-center text-sm text-gray-600">
           Don’t have an account?{" "}
-          <Link
-            to="/register"
-            className="text-indigo-600 hover:text-indigo-800 font-medium"
-          >
+          <Link to="/register" className="text-indigo-600 hover:text-indigo-800 font-medium">
             Create one
           </Link>
         </p>
