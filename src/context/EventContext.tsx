@@ -1,13 +1,18 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
-interface TicketType {
+// ✅ Export the interfaces so they can be imported elsewhere
+export interface TicketType {
   id: number;
   name: string;
   price: number;
+  // Based on previous errors, we assume quantity might also exist here or is added dynamically later
+  // If you store quantity sold here, ensure it's optional if not always present:
+  quantity?: number; 
 }
 
-interface EventData {
+// ✅ Export the interfaces so they can be imported elsewhere
+export interface EventData {
   id: number;
   name: string;
   description: string;
@@ -20,6 +25,9 @@ interface EventData {
   host_name: string;
   hostId?: string | number;
   status: 'Pending Approval' | 'Approved' | 'Rejected';
+  // Note: Based on previous errors, your backend likely uses 'hostId' not 'host_id'.
+  // If your API returns 'host_id', you should update this interface to match your API response.
+  // For now, I'm keeping 'hostId' as that fixed the previous error in HostDashboard.
 }
 
 interface EventContextType {
