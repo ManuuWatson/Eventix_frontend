@@ -1,19 +1,20 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import Header from './components/layout/Header';
-import Footer from './components/layout/Footer';
-import EventsPage from './pages/EventsPage';
-import EventDetailsPage from './pages/EventDetailsPage';
-import CheckoutPage from './pages/CheckoutPage';
-import TicketConfirmationPage from './pages/TicketConfirmationPage';
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
-import HostDashboard from './pages/host/HostDashboard';
-import HostEventsList from './pages/host/HostEventsList';
-import UserDashboard from './pages/user/UserDashboard';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { EventProvider } from './context/EventContext';
-import ProtectedRoute from './components/auth/ProtectedRoute';
+import React from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import Header from "./components/layout/Header";
+import Footer from "./components/layout/Footer";
+import EventsPage from "./pages/EventsPage";
+import EventDetailsPage from "./pages/EventDetailsPage";
+import CheckoutPage from "./pages/CheckoutPage";
+import TicketConfirmationPage from "./pages/TicketConfirmationPage";
+import LoginPage from "./pages/auth/LoginPage";
+import RegisterPage from "./pages/auth/RegisterPage";
+import HostDashboard from "./pages/host/HostDashboard";
+import HostEventsList from "./pages/host/HostEventsList";
+import HostEventForm from "./pages/host/HostEventForm";
+import UserDashboard from "./pages/user/UserDashboard";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { EventProvider } from "./context/EventContext";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 export function App() {
   return (
@@ -23,21 +24,24 @@ export function App() {
           <Header />
           <main className="flex-grow">
             <Routes>
-              {/* 🌟 Landing Page — EventsPage */}
+              {/* 🌟 Landing Page — Public Events */}
               <Route path="/" element={<EventsPage />} />
 
-              {/* 🎫 Public Pages */}
+              {/* 🎫 Public Event Details and Ticketing */}
               <Route path="/events/:eventId" element={<EventDetailsPage />} />
               <Route path="/checkout/:eventId" element={<CheckoutPage />} />
-              <Route path="/confirmation/:ticketId" element={<TicketConfirmationPage />} />
+              <Route
+                path="/confirmation/:ticketId"
+                element={<TicketConfirmationPage />}
+              />
 
               {/* 🔐 Authentication */}
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
 
-              {/* 🏠 Dashboards (Use wildcard for nested routes) */}
+              {/* 🏠 Host Dashboard (Main Entry) */}
               <Route
-                path="/host-dashboard/*" // ✅ Reverted to wildcard to support nested navigation
+                path="/host-dashboard/*"
                 element={
                   <ProtectedRoute role="host">
                     <HostDashboard />
@@ -45,6 +49,34 @@ export function App() {
                 }
               />
 
+              {/* 🎟️ Host Event Management */}
+              <Route
+                path="/host-dashboard/events"
+                element={
+                  <ProtectedRoute role="host">
+                    <HostEventsList />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/host-dashboard/events/new"
+                element={
+                  <ProtectedRoute role="host">
+                    <HostEventForm />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/host-dashboard/events/edit/:eventId"
+                element={
+                  <ProtectedRoute role="host">
+                    <HostEventForm />
+                  </ProtectedRoute>
+                }
+              />
+              {/* If you later add a “view event details” for hosts, add here */}
+
+              {/* 👤 User Dashboard */}
               <Route
                 path="/user-dashboard"
                 element={
@@ -54,17 +86,7 @@ export function App() {
                 }
               />
 
-              {/* 📅 Host Events List (Can likely be removed if HostDashboard manages this path internally) */}
-              <Route
-                path="/host/events"
-                element={
-                  <ProtectedRoute role="host">
-                    <HostEventsList />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* 🚀 Auto Redirect Based on Role */}
+              {/* 🚀 Redirect User Based on Role */}
               <Route
                 path="/dashboard"
                 element={
@@ -88,9 +110,10 @@ export function App() {
 function RedirectBasedOnRole() {
   const { user } = useAuth();
 
-  // Note: ProtectedRoute handles the !user case now.
-  if (user?.user_type === 'host') return <Navigate to="/host-dashboard" replace />;
-  if (user?.user_type === 'user') return <Navigate to="/user-dashboard" replace />;
+  if (user?.user_type === "host")
+    return <Navigate to="/host-dashboard/events" replace />;
+  if (user?.user_type === "user")
+    return <Navigate to="/user-dashboard" replace />;
 
   return <Navigate to="/" replace />;
 }
