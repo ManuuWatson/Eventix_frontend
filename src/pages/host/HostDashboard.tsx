@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useEvents } from '../../context/EventContext';
+import { useEvents, EventContextType } from '../../context/EventContext';
 import {
   LayoutDashboardIcon,
   CalendarIcon,
@@ -10,69 +10,79 @@ import {
   PlusIcon,
   LogOutIcon,
   MenuIcon,
-  UsersIcon, 
+  UsersIcon,
   XIcon,
 } from 'lucide-react';
-
 import HostEventForm from './HostEventForm';
 import HostEventsList from './HostEventsList';
 import HostSalesDashboard from './HostSalesDashboard';
 import HostSettings from './HostSettings';
 
-interface TicketType {
-  price: number;
-  quantity: number;
-  name: string;
-}
+// ✅ SummaryCard component
+const SummaryCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode }> = ({
+  title,
+  value,
+  icon,
+}) => (
+  <div className="bg-white p-5 rounded-lg shadow-md flex items-center justify-between">
+    <div>
+      <p className="text-sm font-medium text-gray-500">{title}</p>
+      <p className="text-2xl font-bold text-gray-900">{value}</p>
+    </div>
+    <div className="p-3 bg-indigo-100 rounded-full">{icon}</div>
+  </div>
+);
 
-interface EventData {
-  id: number;
-  name: string;
-  date: string;
-  location: string;
-  status: 'Approved' | 'Pending';
-  poster?: string;
-  host_id: number; // ✅ matches backend key
-  ticket_types: TicketType[];
-}
-
-const HostDashboard = () => {
+const HostDashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const { events } = useEvents() as unknown as { events: EventData[] };
+  const { events } = useEvents() as EventContextType;
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // ✅ Fix: use host_id instead of hostId
-  const hostEvents = events?.filter((event) => event.host_id === user?.id) || [];
-  console.log("🧑 User data:", user);
-console.log("🎟️ All events fetched:", events);
+  // ✅ Ensure events array is always valid
+  const safeEvents = Array.isArray(events) ? events : [];
 
-console.log("✅ Host-specific events:", hostEvents);
-if (events.length > 0) {
-  console.log("Example event object:", events[0]);
-}
+  // ✅ Filter events by host_id
+  const hostEvents = safeEvents.filter(
+    (event) => Number(event.host_id) === Number(user?.id)
+  );
 
+  // 🧠 Debugging logs
+  console.log('🧑 Current User ID:', user?.id);
+  console.log('🎟️ All Events:', safeEvents);
+  console.log('✅ Host Events:', hostEvents);
+  if (safeEvents.length > 0) {
+    console.log('🔍 Example event host_id:', safeEvents[0].host_id);
+  }
 
+  // ✅ Summary calculations
   const totalEvents = hostEvents.length;
   const upcomingEvents = hostEvents.filter(
     (event) => new Date(event.date) > new Date()
   ).length;
 
-  const totalTicketsSold = hostEvents.reduce(
+  const totalTicketsAvailable = hostEvents.reduce(
     (acc, event) =>
       acc +
-      event.ticket_types.reduce((sum, ticket) => sum + (ticket.quantity || 0), 0),
+      (Array.isArray(event.ticket_types)
+        ? event.ticket_types.reduce((sum, ticket) => sum + (ticket.quantity || 0), 0)
+        : 0),
     0
   );
+
+  // 🧮 Placeholder for total tickets sold (to be updated when ticket purchases are implemented)
+  const totalTicketsSold = 0;
 
   const totalRevenue = hostEvents.reduce(
     (acc, event) =>
       acc +
-      event.ticket_types.reduce(
-        (sum, ticket) => sum + (ticket.price * (ticket.quantity || 0)),
-        0
-      ),
+      (Array.isArray(event.ticket_types)
+        ? event.ticket_types.reduce(
+            (sum, ticket) => sum + ticket.price * (ticket.quantity || 0),
+            0
+          )
+        : 0),
     0
   );
 
@@ -114,7 +124,7 @@ if (events.length > 0) {
         <div className="mb-8">
           <h2 className="text-2xl font-bold">Host Dashboard</h2>
           <p className="text-indigo-200 text-sm mt-1">
-            Welcome, {user?.full_name}
+            Welcome, {user?.full_name || 'Host'}
           </p>
         </div>
         <nav className="space-y-1">
@@ -130,7 +140,6 @@ if (events.length > 0) {
           <NavLink to="/host-dashboard/settings" icon={SettingsIcon}>
             Settings
           </NavLink>
-
           <button
             className="flex items-center px-4 py-3 rounded-md hover:bg-indigo-700 w-full text-left transition duration-150 ease-in-out mt-4"
             onClick={handleLogout}
@@ -144,15 +153,8 @@ if (events.length > 0) {
       {/* Mobile Header */}
       <div className="md:hidden bg-indigo-800 text-white w-full p-4 flex items-center justify-between">
         <h2 className="text-lg font-bold">Host Dashboard</h2>
-        <button
-          className="p-2"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        >
-          {isMobileMenuOpen ? (
-            <XIcon className="h-6 w-6" />
-          ) : (
-            <MenuIcon className="h-6 w-6" />
-          )}
+        <button className="p-2" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+          {isMobileMenuOpen ? <XIcon className="h-6 w-6" /> : <MenuIcon className="h-6 w-6" />}
         </button>
       </div>
 
@@ -161,10 +163,7 @@ if (events.length > 0) {
         <div className="md:hidden fixed inset-0 bg-indigo-800 text-white p-4 z-50">
           <div className="mb-8 flex justify-between items-center">
             <h2 className="text-2xl font-bold">Menu</h2>
-            <button
-              className="p-2"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
+            <button className="p-2" onClick={() => setIsMobileMenuOpen(false)}>
               <XIcon className="h-6 w-6" />
             </button>
           </div>
@@ -192,8 +191,8 @@ if (events.length > 0) {
         </div>
       )}
 
-      {/* Main Content Area */}
-      <div className="flex-1 p-6">
+      {/* Main Content */}
+      <div className="flex-1 p-6 overflow-y-auto">
         <Routes>
           <Route
             index
@@ -210,66 +209,70 @@ if (events.length > 0) {
                   </Link>
                 </div>
 
-                {/* Summary Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                {/* ✅ Summary Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
                   <SummaryCard
                     title="Total Events"
-                    value={totalEvents}
+                    value={totalEvents || 0}
                     icon={<CalendarIcon className="h-6 w-6 text-indigo-600" />}
                   />
                   <SummaryCard
                     title="Upcoming Events"
-                    value={upcomingEvents}
+                    value={upcomingEvents || 0}
                     icon={<LayoutDashboardIcon className="h-6 w-6 text-green-600" />}
+                  />
+                  <SummaryCard
+                    title="Total Tickets Available"
+                    value={totalTicketsAvailable || 0}
+                    icon={<UsersIcon className="h-6 w-6 text-orange-600" />}
                   />
                   <SummaryCard
                     title="Total Tickets Sold"
                     value={totalTicketsSold}
-                    icon={<UsersIcon className="h-6 w-6 text-orange-600" />}
+                    icon={<UsersIcon className="h-6 w-6 text-red-600" />}
                   />
                   <SummaryCard
-                    title="Total Revenue"
-                    value={`$${totalRevenue.toFixed(2)}`}
+                    title="Total Revenue (Est.)"
+                    value={`$${(totalRevenue || 0).toFixed(2)}`}
                     icon={<DollarSignIcon className="h-6 w-6 text-yellow-600" />}
                   />
                 </div>
 
-                {/* Recent Events */}
+                {/* ✅ Recent Events */}
                 <h2 className="text-lg font-semibold mb-4">Your Recent Events</h2>
                 {recentEvents.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {recentEvents.map((event) => (
                       <div
-                        key={event.id}
-                        className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition"
+                        key={event.event_id} // ✅ fixed here
+                        className="bg-white p-5 rounded-lg shadow-md hover:shadow-lg transition duration-300"
                       >
-                        <h3 className="text-xl font-semibold mb-2">{event.name}</h3>
-                        <p className="text-gray-600 text-sm">{event.location}</p>
-                        <p className="text-gray-500 text-xs">
+                        <h3 className="text-xl font-bold mb-2">{event.name}</h3>
+                        <p className="text-sm text-gray-600 mb-2">
+                          <CalendarIcon className="inline h-4 w-4 mr-2" />
                           {new Date(event.date).toLocaleDateString()}
                         </p>
-                        <p
-                          className={`mt-2 text-sm font-medium ${
+                        <p className="text-sm text-gray-600 mb-4">{event.location}</p>
+                        <span
+                          className={`px-3 py-1 text-xs font-semibold rounded-full ${
                             event.status === 'Approved'
-                              ? 'text-green-600'
-                              : 'text-yellow-600'
+                              ? 'bg-green-200 text-green-800'
+                              : 'bg-yellow-200 text-yellow-800'
                           }`}
                         >
                           {event.status}
-                        </p>
+                        </span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-500 text-sm">
-                    You haven’t created any events yet.
-                  </p>
+                  <p className="text-gray-500">You haven't created any events yet.</p>
                 )}
               </>
             }
           />
-          <Route path="events/*" element={<HostEventsList />} />
           <Route path="events/new" element={<HostEventForm />} />
+          <Route path="events/*" element={<HostEventsList />} />
           <Route path="sales" element={<HostSalesDashboard />} />
           <Route path="settings" element={<HostSettings />} />
         </Routes>
@@ -277,23 +280,5 @@ if (events.length > 0) {
     </div>
   );
 };
-
-const SummaryCard = ({
-  title,
-  value,
-  icon,
-}: {
-  title: string;
-  value: string | number;
-  icon: React.ReactNode;
-}) => (
-  <div className="bg-white rounded-lg shadow-md p-6 flex items-center">
-    <div className="bg-indigo-100 p-3 rounded-full">{icon}</div>
-    <div className="ml-4">
-      <h3 className="text-gray-500 text-sm">{title}</h3>
-      <p className="text-2xl font-semibold">{value}</p>
-    </div>
-  </div>
-);
 
 export default HostDashboard;
