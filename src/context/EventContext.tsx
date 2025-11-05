@@ -1,19 +1,17 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import axios from 'axios';
 
-// ✅ Export the interfaces so they can be imported elsewhere
+// ✅ Ticket type interface
 export interface TicketType {
   id: number;
   name: string;
   price: number;
-  // Based on previous errors, we assume quantity might also exist here or is added dynamically later
-  // If you store quantity sold here, ensure it's optional if not always present:
-  quantity?: number; 
+  quantity: number;
 }
 
-// ✅ Export the interfaces so they can be imported elsewhere
+// ✅ Event data interface (renamed `id` → `event_id`)
 export interface EventData {
-  id: number;
+  event_id: number; // ✅ clearer naming for event
   name: string;
   description: string;
   poster: string;
@@ -23,28 +21,34 @@ export interface EventData {
   payment_methods: string[];
   ticket_types: TicketType[];
   host_name: string;
-  hostId?: string | number;
+  host_id: number; // ✅ consistent naming
   status: 'Pending Approval' | 'Approved' | 'Rejected';
-  // Note: Based on previous errors, your backend likely uses 'hostId' not 'host_id'.
-  // If your API returns 'host_id', you should update this interface to match your API response.
-  // For now, I'm keeping 'hostId' as that fixed the previous error in HostDashboard.
 }
 
-interface EventContextType {
+// ✅ Context type
+export interface EventContextType {
   events: EventData[];
   fetchEvents: () => Promise<void>;
 }
 
 const EventContext = createContext<EventContextType | undefined>(undefined);
 
-export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [events, setEvents] = useState<EventData[]>([]);
 
   // ✅ Fetch events from Django API
   const fetchEvents = async () => {
     try {
       const response = await axios.get('http://127.0.0.1:8000/api/events/');
-      setEvents(response.data);
+      const apiData = response.data;
+
+      // ✅ Normalize data in case backend still sends 'id' instead of 'event_id'
+      const normalizedEvents = apiData.map((event: any) => ({
+        ...event,
+        event_id: event.event_id ?? event.id, // fallback
+      }));
+
+      setEvents(normalizedEvents);
     } catch (error) {
       console.error('Error fetching events:', error);
     }
@@ -62,6 +66,7 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 };
 
+// ✅ Custom hook
 export const useEvents = () => {
   const context = useContext(EventContext);
   if (!context) throw new Error('useEvents must be used within EventProvider');
