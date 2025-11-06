@@ -20,7 +20,7 @@ const HostEventForm: React.FC = () => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    poster: "",
+    poster: null as File | null,
     date: "",
     location: "",
   });
@@ -47,7 +47,7 @@ const HostEventForm: React.FC = () => {
             description: event.description || "",
             date: event.date || "",
             location: event.location || "",
-            poster: event.poster || "",
+            poster: null, // Keep null for editing
           });
           setPosterPreview(event.poster || null);
           if (event.ticket_types) {
@@ -80,13 +80,10 @@ const HostEventForm: React.FC = () => {
   const handlePosterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result as string;
-      setPosterPreview(result);
-      setFormData((prev) => ({ ...prev, poster: result }));
-    };
-    reader.readAsDataURL(file);
+
+    setPosterPreview(URL.createObjectURL(file)); // Preview
+    setFormData((prev) => ({ ...prev, poster: file })); // Store file object
+    if (errors.poster) setErrors((prev) => ({ ...prev, poster: "" }));
   };
 
   // Handle ticket type updates
@@ -127,7 +124,8 @@ const HostEventForm: React.FC = () => {
     if (!formData.date) newErrors.date = "Event date is required";
     if (!formData.location.trim())
       newErrors.location = "Event location is required";
-    if (!formData.poster) newErrors.poster = "Poster image is required";
+    if (!formData.poster && !isEditMode)
+      newErrors.poster = "Poster image is required";
 
     ticketTypes.forEach((t, i) => {
       if (!t.name?.trim())
@@ -155,29 +153,29 @@ const HostEventForm: React.FC = () => {
     setMessage("");
 
     try {
-      const dateOnly = formData.date.split("T")[0];
-      const eventData = {
-        name: formData.name,
-        description: formData.description,
-        date: dateOnly,
-        location: formData.location,
-        poster: formData.poster,
-        host_name: user?.full_name || "Unknown Host",
-        ticket_types: ticketTypes.map((t) => ({
-          name: t.name,
-          price: t.price,
-        })),
-      };
+      const formPayload = new FormData();
+      formPayload.append("name", formData.name);
+      formPayload.append("description", formData.description);
+      formPayload.append("date", formData.date.split("T")[0]);
+      formPayload.append("location", formData.location);
+      formPayload.append("host_name", user.full_name || "Unknown Host");
+
+      if (formData.poster) formPayload.append("poster", formData.poster); // File object
+
+      // Append ticket types as JSON string
+      formPayload.append(
+        "ticket_types",
+        JSON.stringify(ticketTypes.map((t) => ({ name: t.name, price: t.price })))
+      );
 
       const url = isEditMode
         ? `http://127.0.0.1:8000/api/events/${eventId}/`
         : `http://127.0.0.1:8000/api/events/`;
-
       const method = isEditMode ? axios.put : axios.post;
 
-      const response = await method(url, eventData, {
+      const response = await method(url, formPayload, {
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${authToken}`,
         },
       });
@@ -189,7 +187,6 @@ const HostEventForm: React.FC = () => {
             : "✅ Event created successfully! Awaiting admin approval."
         );
 
-        // ⏩ Redirect back to the host's events page
         setTimeout(() => {
           navigate("/host-dashboard/events", { state: { refresh: true } });
         }, 800);

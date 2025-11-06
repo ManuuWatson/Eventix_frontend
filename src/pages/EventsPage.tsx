@@ -28,14 +28,15 @@ const EventsPage = () => {
     location: "",
   });
 
-  // ✅ Local filtering function (only approved events)
+  // ✅ Local filtering function (only approved events, sorted by nearest date)
   const filterEvents = (f: FilterFields) => {
     if (!allEvents || !Array.isArray(allEvents)) return [];
 
     const q = (f.search || "").toLowerCase();
 
-    return allEvents
-      .filter((e: any) => e.is_approved === true) // ✅ show only approved events
+    // Filter approved events
+    const filtered = allEvents
+      .filter((e: any) => e.is_approved === true)
       .filter((e: any) => {
         const title = (e.title || e.name || "").toString().toLowerCase();
         const description = (e.description || "").toString().toLowerCase();
@@ -56,6 +57,15 @@ const EventsPage = () => {
 
         return searchMatch && categoryMatch && dateMatch && locationMatch;
       });
+
+    // 🔹 Sort by nearest upcoming date (soonest first)
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateA.getTime() - dateB.getTime();
+    });
+
+    return filtered;
   };
 
   // Track filtered events locally
@@ -103,7 +113,8 @@ const EventsPage = () => {
           }}
         >
           {carouselImages.map((image, index) => (
-            <div key={index} className="w-full flex-shrink-0 relative">
+            // A key is needed here too for list rendering in React
+            <div key={index} className="w-full flex-shrink-0 relative"> 
               <img
                 src={image}
                 alt={`Slide ${index + 1}`}
@@ -165,7 +176,8 @@ const EventsPage = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {events.map((event) => (
-              <EventCard key={event.id} event={event} />
+              // ✅ This resolves the "missing key prop" warning
+              <EventCard key={event.event_id} event={event} />
             ))}
           </div>
         )}
@@ -211,8 +223,7 @@ const EventsPage = () => {
             </div>
             <h3 className="text-xl font-semibold mb-2">Secure Booking</h3>
             <p className="text-gray-600">
-              Book with confidence with our secure payment system and instant
-              ticket delivery.
+              Your information is safe with our secure payment processing.
             </p>
           </div>
         </div>
