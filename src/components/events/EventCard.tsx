@@ -4,8 +4,7 @@ import { Link } from "react-router-dom";
 import { Heart, Share2 } from "lucide-react";
 import axios from "axios";
 
-// Assume you have a local fallback image in your public directory
-// e.g., 'public/images/fallback-poster.png'
+// Local fallback image in your public directory
 const FALLBACK_IMAGE_PATH = "/images/fallback-poster.png";
 
 interface EventCardProps {
@@ -14,6 +13,7 @@ interface EventCardProps {
     name: string;
     description: string;
     poster?: string;
+    poster_url?: string;
     date: string;
     location: string;
     category?: string;
@@ -32,6 +32,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
     name,
     description,
     poster,
+    poster_url,
     date,
     location,
     likes_count: initialLikes,
@@ -40,40 +41,66 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
   const [likeCount, setLikeCount] = useState(initialLikes || 0);
   const [isLiked, setIsLiked] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
-  
-  // Use state to manage the image source and handle fallbacks elegantly
-  const baseUrl = (import.meta as any).env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
-  const initialImageSrc = poster
-    ? poster.startsWith("http")
+  // Base API URL
+  const baseUrl =
+    (import.meta as any).env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+
+  // ✅ Use poster_url first (from backend JSON), fallback to poster, then placeholder
+  const initialImageSrc =
+    poster_url && poster_url.startsWith("http")
+      ? poster_url
+      : poster && poster.startsWith("http")
       ? poster
-      : `${baseUrl}${poster.startsWith("/") ? poster : "/" + poster}`
-    : "https://via.placeholder.com/1200x800?text=Event+Poster"; // Initial fallback if no poster is provided at all
+      : poster
+      ? `${baseUrl}${poster.startsWith("/") ? poster : "/" + poster}`
+      : "https://via.placeholder.com/1200x800?text=Event+Poster";
 
   const [currentImageSrc, setCurrentImageSrc] = useState(initialImageSrc);
 
-  // ✅ Handle Image Error: Switch to a local fallback image
+  // ✅ Handle image load failure gracefully
   const handleImageError = () => {
-    // Only set the fallback if it hasn't been set already to prevent infinite loops
     if (currentImageSrc !== FALLBACK_IMAGE_PATH) {
-        setCurrentImageSrc(FALLBACK_IMAGE_PATH);
+      setCurrentImageSrc(FALLBACK_IMAGE_PATH);
     }
   };
 
-  // ... (rest of your handleLike and handleShare functions remain the same)
-  const handleLike = async () => { /* ... (same as before) ... */ };
-  const handleShare = async () => { /* ... (same as before) ... */ };
+  // ✅ Handle Like
+  const handleLike = async () => {
+    if (isLiking) return;
+    setIsLiking(true);
+    try {
+      setIsLiked(!isLiked);
+      setLikeCount((prev) => (isLiked ? prev - 1 : prev + 1));
+      await axios.post(`${baseUrl}/api/events/${event_id}/like/`);
+    } catch (error) {
+      console.error("Error liking event:", error);
+    } finally {
+      setIsLiking(false);
+    }
+  };
 
+  // ✅ Handle Share
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(
+        `${window.location.origin}/events/${event_id}`
+      );
+      alert("Event link copied to clipboard!");
+    } catch (error) {
+      console.error("Failed to copy link:", error);
+    }
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-md hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden">
-      {/* Image */}
+      {/* Event Poster */}
       <div className="relative w-full aspect-video">
         <img
-          src={currentImageSrc} // Use the state-managed source
+          src={currentImageSrc}
           alt={name}
           className="w-full h-full object-cover"
-          onError={handleImageError} // Use the dedicated error handler
+          onError={handleImageError}
         />
         {/* Likes badge */}
         <div className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-lg flex items-center justify-center">
@@ -82,11 +109,13 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
               isLiked ? "text-red-500 fill-red-500" : "text-gray-400"
             }`}
           />
-          <span className="text-sm font-bold text-gray-800 ml-1">{likeCount}</span>
+          <span className="text-sm font-bold text-gray-800 ml-1">
+            {likeCount}
+          </span>
         </div>
       </div>
 
-      {/* ... (rest of the component JSX remains the same) ... */}
+      {/* Event Info */}
       <div className="p-4 flex flex-col flex-grow">
         <h3 className="text-xl font-semibold text-gray-900 mb-2 line-clamp-2">
           {name}

@@ -24,6 +24,7 @@ interface EventData {
   name: string;
   description: string;
   poster?: string;
+  poster_url?: string; // ✅ Added this
   date: string;
   location: string;
   category: string;
@@ -225,7 +226,8 @@ const HostEventsList: React.FC = () => {
                     <tr key={event.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 flex items-center space-x-4">
                         <img
-                          src={getPosterImage(event.poster)}
+                          // ✅ Updated line below — uses `poster_url` or fallback to `poster`
+                          src={getPosterImage(event.poster_url || event.poster)}
                           alt={event.name}
                           className="w-16 h-16 rounded-md object-cover"
                         />
