@@ -1,10 +1,8 @@
-// EventCard.tsx
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Heart, Share2 } from "lucide-react";
 import axios from "axios";
 
-// Local fallback image in your public directory
 const FALLBACK_IMAGE_PATH = "/images/fallback-poster.png";
 
 interface EventCardProps {
@@ -16,12 +14,6 @@ interface EventCardProps {
     poster_url?: string;
     date: string;
     location: string;
-    category?: string;
-    ticket_types: {
-      id: string;
-      name: string;
-      price: number;
-    }[];
     likes_count: number;
   };
 }
@@ -42,11 +34,9 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
 
-  // Base API URL
   const baseUrl =
     (import.meta as any).env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
-  // ✅ Use poster_url first (from backend JSON), fallback to poster, then placeholder
   const initialImageSrc =
     poster_url && poster_url.startsWith("http")
       ? poster_url
@@ -58,14 +48,12 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
 
   const [currentImageSrc, setCurrentImageSrc] = useState(initialImageSrc);
 
-  // ✅ Handle image load failure gracefully
   const handleImageError = () => {
     if (currentImageSrc !== FALLBACK_IMAGE_PATH) {
       setCurrentImageSrc(FALLBACK_IMAGE_PATH);
     }
   };
 
-  // ✅ Handle Like
   const handleLike = async () => {
     if (isLiking) return;
     setIsLiking(true);
@@ -80,7 +68,6 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
     }
   };
 
-  // ✅ Handle Share
   const handleShare = async () => {
     try {
       await navigator.clipboard.writeText(
@@ -93,77 +80,79 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-md hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden">
+    <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden w-full max-w-sm mx-auto">
+      {/* Poster */}
       {/* Event Poster */}
-      <div className="relative w-full aspect-video">
-        <img
-          src={currentImageSrc}
-          alt={name}
-          className="w-full h-full object-cover"
-          onError={handleImageError}
-        />
-        {/* Likes badge */}
-        <div className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-lg flex items-center justify-center">
-          <Heart
-            className={`h-5 w-5 ${
-              isLiked ? "text-red-500 fill-red-500" : "text-gray-400"
-            }`}
-          />
-          <span className="text-sm font-bold text-gray-800 ml-1">
-            {likeCount}
-          </span>
-        </div>
-      </div>
+<div className="relative w-full overflow-hidden rounded-t-xl bg-gray-100">
+  <img
+    src={currentImageSrc}
+    alt={name}
+    className="w-full max-h-80 mx-auto object-scale-down transition-transform duration-500 hover:scale-[1.03]"
+    onError={handleImageError}
+  />
 
-      {/* Event Info */}
-      <div className="p-4 flex flex-col flex-grow">
-        <h3 className="text-xl font-semibold text-gray-900 mb-2 line-clamp-2">
+  {/* Likes badge */}
+  <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-md px-2 py-1 rounded-full shadow flex items-center gap-1">
+    <Heart
+      className={`h-4 w-4 ${
+        isLiked ? "text-red-500 fill-red-500" : "text-gray-500"
+      }`}
+    />
+    <span className="text-xs font-semibold text-gray-800">
+      {likeCount}
+    </span>
+  </div>
+</div>
+
+
+      {/* Info */}
+      <div className="p-3 flex flex-col">
+        <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-1">
           {name}
         </h3>
-        <p className="text-gray-600 text-sm md:text-base mb-3 line-clamp-3">
+        <p className="text-sm text-gray-600 line-clamp-2 mb-3">
           {description || "No description provided."}
         </p>
 
-        <div className="mt-auto pt-2 border-t border-gray-100">
-          <div className="text-gray-500 text-sm flex justify-between flex-wrap gap-2">
-            <span>
-              <strong>Date:</strong> {new Date(date).toDateString()}
-            </span>
-            <span>
-              <strong>Location:</strong> {location}
-            </span>
-          </div>
+        {/* Date + Location */}
+        <div className="text-xs text-gray-500 flex justify-between mb-2">
+          <span>
+            <strong>Date:</strong>{" "}
+            {new Date(date).toDateString().slice(0, 10)}
+          </span>
+          <span>
+            <strong>Location:</strong> {location}
+          </span>
         </div>
 
-        {/* Action buttons */}
-        <div className="flex justify-around items-center pt-4 border-t border-gray-100 mt-4">
+        {/* Like / Share */}
+        <div className="flex justify-between items-center mt-2 border-t border-gray-100 pt-2">
           <button
             onClick={handleLike}
             disabled={isLiking}
-            className={`flex flex-col items-center p-2 rounded-md transition-colors ${
-              isLiked ? "text-red-500" : "text-gray-500 hover:text-red-500"
+            className={`flex items-center gap-1 text-sm ${
+              isLiked
+                ? "text-red-500"
+                : "text-gray-500 hover:text-red-500 transition"
             }`}
-            aria-pressed={isLiked}
           >
-            <Heart className="h-6 w-6" />
-            <span className="text-sm font-medium mt-1">
-              {isLiked ? "Liked" : "Like"}
-            </span>
+            <Heart className="h-4 w-4" />
+            <span>{isLiked ? "Liked" : "Like"}</span>
           </button>
 
           <button
             onClick={handleShare}
-            className="flex flex-col items-center text-gray-500 hover:text-indigo-600 p-2 rounded-md transition-colors"
+            className="flex items-center gap-1 text-sm text-gray-500 hover:text-indigo-600 transition"
           >
-            <Share2 className="h-6 w-6" />
-            <span className="text-sm font-medium mt-1">Share</span>
+            <Share2 className="h-4 w-4" />
+            <span>Share</span>
           </button>
         </div>
 
         {/* Buy Ticket */}
         <Link
           to={`/events/${event_id}`}
-          className="mt-4 bg-indigo-600 text-white font-semibold py-3 px-6 rounded-lg text-center shadow-lg hover:bg-indigo-700 transition-colors"
+          className="mt-3 bg-indigo-600 text-white text-sm font-semibold py-2 rounded-lg text-center hover:bg-indigo-700 transition"
         >
           Buy Ticket
         </Link>
