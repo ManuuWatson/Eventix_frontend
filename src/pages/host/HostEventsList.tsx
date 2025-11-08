@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   PlusIcon,
   EditIcon,
@@ -12,7 +12,6 @@ import {
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 
-// --- Type Definitions ---
 interface TicketType {
   id: number;
   name: string;
@@ -24,7 +23,7 @@ interface EventData {
   name: string;
   description: string;
   poster?: string;
-  poster_url?: string; // ✅ Added this
+  poster_url?: string;
   date: string;
   location: string;
   category: string;
@@ -45,7 +44,6 @@ const HostEventsList: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // --- Axios instance with Authorization header ---
   const api = axios.create({
     baseURL: "http://127.0.0.1:8000/api/",
     headers: {
@@ -53,18 +51,19 @@ const HostEventsList: React.FC = () => {
     },
   });
 
-  // --- Fetch Events ---
   const fetchEvents = useCallback(async () => {
     if (!authToken) {
       setError("User not authenticated. Please log in again.");
       setIsLoading(false);
       return;
     }
-
     setIsLoading(true);
     try {
-      const response = await api.get("events/");
-      setEvents(response.data);
+      const response = await api.get("events/my_events/");
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const userId = user.id || user.host_id;
+      const myEvents = response.data.filter((event: EventData) => event.host_id === userId);
+      setEvents(myEvents);
       setError(null);
     } catch (error) {
       console.error("Error fetching events:", error);
@@ -82,7 +81,6 @@ const HostEventsList: React.FC = () => {
     fetchEvents();
   }, [fetchEvents]);
 
-  // --- Filter Events ---
   const filteredEvents = events.filter((event) => {
     const eventDate = new Date(event.date);
     const now = new Date();
@@ -91,7 +89,6 @@ const HostEventsList: React.FC = () => {
     return true;
   });
 
-  // --- Delete Event ---
   const handleDeleteClick = (id: number) => setDeleteConfirmation(id);
   const cancelDelete = () => setDeleteConfirmation(null);
 
@@ -106,11 +103,10 @@ const HostEventsList: React.FC = () => {
     }
   };
 
-  // --- Navigation Handlers ---
   const handleEdit = (id: number) => navigate(`/host/events/edit/${id}`);
   const handleView = (id: number) => navigate(`/host/events/${id}`);
+  const handleCreate = () => navigate("/host-dashboard/events/new");
 
-  // --- Helpers ---
   const formatDateTime = (dateString: string) => {
     if (!dateString) return { datePart: "N/A", timePart: "" };
     try {
@@ -141,121 +137,179 @@ const HostEventsList: React.FC = () => {
         : `${baseUrl}${poster.startsWith("/") ? poster : "/" + poster}`
       : "https://via.placeholder.com/600x400?text=Event+Poster";
 
-  // --- Render UI ---
-  if (isLoading) {
-    return <div className="p-8 text-center">Loading events...</div>;
-  }
-
-  if (error) {
-    return <div className="p-8 text-center text-red-600">{error}</div>;
-  }
+  if (isLoading) return <div className="p-8 text-center">Loading events...</div>;
+  if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
 
   return (
     <div>
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
         <h1 className="text-2xl font-bold text-gray-800">🎟️ My Events</h1>
-        <Link
-          to="/host/events/new"
+        <button
+          onClick={handleCreate}
           className="bg-indigo-600 text-white px-4 py-2 rounded-md flex items-center hover:bg-indigo-700 transition"
         >
           <PlusIcon className="h-5 w-5 mr-2" /> Create Event
-        </Link>
+        </button>
       </div>
 
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         {/* Filter Bar */}
-        <div className="p-4 border-b">
-          <div className="flex space-x-4">
-            {["all", "upcoming", "past"].map((type) => (
-              <button
-                key={type}
-                onClick={() => setFilter(type as "all" | "upcoming" | "past")}
-                className={`px-4 py-2 rounded-md transition ${
-                  filter === type
-                    ? "bg-indigo-100 text-indigo-700 font-semibold"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                {type === "all"
-                  ? "All Events"
-                  : type.charAt(0).toUpperCase() + type.slice(1)}
-              </button>
-            ))}
-          </div>
+        <div className="p-4 border-b flex flex-wrap gap-2 justify-center sm:justify-start">
+          {["all", "upcoming", "past"].map((type) => (
+            <button
+              key={type}
+              onClick={() => setFilter(type as "all" | "upcoming" | "past")}
+              className={`px-4 py-2 rounded-md text-sm sm:text-base transition ${
+                filter === type
+                  ? "bg-indigo-100 text-indigo-700 font-semibold"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              {type === "all"
+                ? "All Events"
+                : type.charAt(0).toUpperCase() + type.slice(1)}
+            </button>
+          ))}
         </div>
 
         {/* Event List */}
         {filteredEvents.length === 0 ? (
           <div className="p-8 text-center">
             <p className="text-gray-500 mb-4">No events found.</p>
-            <Link
-              to="/host/events/new"
+            <button
+              onClick={handleCreate}
               className="inline-flex items-center text-indigo-600 hover:text-indigo-800"
             >
               <PlusIcon className="h-4 w-4 mr-1" /> Create your first event
-            </Link>
+            </button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Event
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Date & Time
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Location
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
+          <>
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Event
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Date & Time
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Location
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredEvents.map((event) => {
+                    const { datePart, timePart } = formatDateTime(event.date);
+                    return (
+                      <tr key={event.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 flex items-center space-x-4">
+                          <img
+                            src={getPosterImage(event.poster_url || event.poster)}
+                            alt={event.name}
+                            className="w-16 h-16 rounded-md object-cover"
+                          />
+                          <div>
+                            <p className="font-medium text-gray-900">{event.name}</p>
+                            <p className="text-sm text-gray-500">{event.category}</p>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center text-gray-600 text-sm space-x-1">
+                            <CalendarIcon className="h-4 w-4" />
+                            <span>{datePart}</span>
+                          </div>
+                          <div className="flex items-center text-gray-600 text-sm space-x-1">
+                            <ClockIcon className="h-4 w-4" />
+                            <span>{timePart}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          <div className="flex items-center space-x-1">
+                            <MapPinIcon className="h-4 w-4" />
+                            <span>{event.location}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                              event.is_approved
+                                ? "bg-green-100 text-green-700"
+                                : "bg-yellow-100 text-yellow-700"
+                            }`}
+                          >
+                            {event.is_approved ? "Approved" : "Pending"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right text-sm">
+                          <div className="flex justify-end space-x-3">
+                            <button
+                              onClick={() => handleView(event.id)}
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              <EyeIcon className="h-5 w-5" />
+                            </button>
+                            <button
+                              onClick={() => handleEdit(event.id)}
+                              className="text-indigo-600 hover:text-indigo-800"
+                            >
+                              <EditIcon className="h-5 w-5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClick(event.id)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <TrashIcon className="h-5 w-5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredEvents.map((event) => {
-                  const { datePart, timePart } = formatDateTime(event.date);
-                  return (
-                    <tr key={event.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 flex items-center space-x-4">
-                        <img
-                          // ✅ Updated line below — uses `poster_url` or fallback to `poster`
-                          src={getPosterImage(event.poster_url || event.poster)}
-                          alt={event.name}
-                          className="w-16 h-16 rounded-md object-cover"
-                        />
-                        <div>
-                          <p className="font-medium text-gray-900">{event.name}</p>
-                          <p className="text-sm text-gray-500">{event.category}</p>
-                        </div>
-                      </td>
-
-                      <td className="px-6 py-4">
-                        <div className="flex items-center text-gray-600 text-sm space-x-1">
-                          <CalendarIcon className="h-4 w-4" />
-                          <span>{datePart}</span>
-                        </div>
-                        <div className="flex items-center text-gray-600 text-sm space-x-1">
-                          <ClockIcon className="h-4 w-4" />
-                          <span>{timePart}</span>
-                        </div>
-                      </td>
-
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        <div className="flex items-center space-x-1">
-                          <MapPinIcon className="h-4 w-4" />
-                          <span>{event.location}</span>
-                        </div>
-                      </td>
-
-                      <td className="px-6 py-4 text-sm">
+            {/* Mobile Cards */}
+            <div className="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-4 p-4">
+              {filteredEvents.map((event) => {
+                const { datePart, timePart } = formatDateTime(event.date);
+                return (
+                  <div
+                    key={event.id}
+                    className="border rounded-lg shadow-sm overflow-hidden bg-white"
+                  >
+                    <img
+                      src={getPosterImage(event.poster_url || event.poster)}
+                      alt={event.name}
+                      className="w-full h-40 object-cover"
+                    />
+                    <div className="p-4 space-y-2">
+                      <h3 className="font-semibold text-gray-900 truncate">{event.name}</h3>
+                      <p className="text-sm text-gray-500">{event.category}</p>
+                      <div className="flex items-center text-gray-600 text-sm space-x-1">
+                        <CalendarIcon className="h-4 w-4" />
+                        <span>{datePart}</span>
+                      </div>
+                      <div className="flex items-center text-gray-600 text-sm space-x-1">
+                        <ClockIcon className="h-4 w-4" />
+                        <span>{timePart}</span>
+                      </div>
+                      <div className="flex items-center text-gray-600 text-sm space-x-1">
+                        <MapPinIcon className="h-4 w-4" />
+                        <span>{event.location}</span>
+                      </div>
+                      <div>
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-semibold ${
                             event.is_approved
@@ -265,39 +319,33 @@ const HostEventsList: React.FC = () => {
                         >
                           {event.is_approved ? "Approved" : "Pending"}
                         </span>
-                      </td>
-
-                      <td className="px-6 py-4 text-right text-sm">
-                        <div className="flex justify-end space-x-3">
-                          <button
-                            onClick={() => handleView(event.id)}
-                            className="text-blue-600 hover:text-blue-800"
-                            title="View Details"
-                          >
-                            <EyeIcon className="h-5 w-5" />
-                          </button>
-                          <button
-                            onClick={() => handleEdit(event.id)}
-                            className="text-indigo-600 hover:text-indigo-800"
-                            title="Edit Event"
-                          >
-                            <EditIcon className="h-5 w-5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(event.id)}
-                            className="text-red-600 hover:text-red-800"
-                            title="Delete Event"
-                          >
-                            <TrashIcon className="h-5 w-5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                      <div className="flex justify-end space-x-3 pt-2">
+                        <button
+                          onClick={() => handleView(event.id)}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          <EyeIcon className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(event.id)}
+                          className="text-indigo-600 hover:text-indigo-800"
+                        >
+                          <EditIcon className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(event.id)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 
