@@ -1,4 +1,3 @@
-// ✅ RegisterPage.tsx – Final Version (No token on register, redirect to login)
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { UserIcon, MailIcon, LockIcon, EyeIcon, EyeOffIcon } from "lucide-react";
@@ -43,12 +42,16 @@ const RegisterPage: React.FC = () => {
     try {
       setIsLoading(true);
 
-      const response = await axios.post("http://localhost:8000/api/users/register/", {
-        full_name: form.full_name,
-        email: form.email,
-        password: form.password,
-        user_type: form.user_type,
-      });
+      const response = await axios.post(
+        "https://eventix-backend2.onrender.com/api/users/register/",
+        {
+          full_name: form.full_name,
+          email: form.email,
+          password: form.password,
+          user_type: form.user_type,
+        },
+        { headers: { "Content-Type": "application/json" } }
+      );
 
       if (response.status === 201 || response.status === 200) {
         setSuccessMessage("🎉 Registration successful! Redirecting to login...");
@@ -58,6 +61,7 @@ const RegisterPage: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Registration failed:", error);
+
 
       const backendError =
         error.response?.data?.email?.[0] ||

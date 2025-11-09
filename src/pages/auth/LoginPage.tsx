@@ -1,49 +1,52 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { MailIcon, LockIcon, EyeIcon, EyeOffIcon } from "lucide-react";
-// import axiosInstance from "../../api/axiosInstance"; // Not needed here anymore if using context login
-import { useAuth } from "../../context/AuthContext"; // ✅ Import useAuth
+import axios from "axios";
 
 const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  // const [isLoading, setIsLoading] = useState(false); // Use isLoading from context
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { login, isLoading } = useAuth(); // ✅ Destructure login and isLoading from context
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    // setIsLoading(true); // Handled by context's internal state
+    setIsLoading(true);
 
     try {
-      // ✅ Call the context's login function
-      await login(email, password);
+      const response = await axios.post(
+        "https://eventix-backend2.onrender.com/api/users/login/",
+        { email, password },
+        { headers: { "Content-Type": "application/json" } }
+      );
 
-      // We removed navigation from the context, so we handle it here:
-      // Read the user type from localStorage immediately after successful login
-      const userType = localStorage.getItem('user_type') || (JSON.parse(localStorage.getItem('user') || '{}')).user_type;
+      // ✅ Save user + token
+      localStorage.setItem("token", response.data.access);
+      localStorage.setItem("refresh", response.data.refresh);
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+      localStorage.setItem("user_type", response.data.user.user_type);
 
-      if (userType === "host") {
-          navigate("/host-dashboard", { replace: true });
-      } else if (userType === "user") {
-          navigate("/user-dashboard", { replace: true });
+      // ✅ Redirect based on user type
+      if (response.data.user.user_type === "host") {
+        navigate("/host-dashboard", { replace: true });
+      } else if (response.data.user.user_type === "user") {
+        navigate("/user-dashboard", { replace: true });
       } else {
-          // Fallback if user type isn't clear
-          navigate("/", { replace: true });
+        navigate("/", { replace: true });
       }
-
-
     } catch (err: any) {
-      console.error("Login error:", err);
-      // The context login function throws an error object
-      setError(err.message || "Invalid email or password.");
-    } 
-    // finally {
-    //   setIsLoading(false); // Handled by context's internal state
-    // }
+      console.error("Login error:", err.response?.data || err.message);
+      setError(
+        err.response?.data?.detail ||
+          err.response?.data?.error ||
+          "Invalid email or password."
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -57,9 +60,9 @@ const LoginPage: React.FC = () => {
           </p>
         </div>
 
-        {(error || useAuth().error) && ( // Check local error or context error
+        {error && (
           <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-md text-sm text-red-700">
-            {error || useAuth().error}
+            {error}
           </div>
         )}
 

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const axiosInstance = axios.create({
-  baseURL: "https://eventix-booking.onrender.com/api/",
+  baseURL: "https://eventix-backend2.onrender.com/api/",
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
