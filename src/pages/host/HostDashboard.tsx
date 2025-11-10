@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { useEvents, EventContextType } from '../../context/EventContext';
+import React, { useState, useEffect } from "react";
+import { Routes, Route, Link, useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { useEvents, EventContextType } from "../../context/EventContext";
 import {
   LayoutDashboardIcon,
   CalendarIcon,
@@ -12,11 +12,11 @@ import {
   MenuIcon,
   UsersIcon,
   XIcon,
-} from 'lucide-react';
-import HostEventForm from './HostEventForm';
-import HostEventsList from './HostEventsList';
-import HostSalesDashboard from './HostSalesDashboard';
-import HostSettings from './HostSettings';
+} from "lucide-react";
+import HostEventForm from "./HostEventForm";
+import HostEventsList from "./HostEventsList";
+import HostSalesDashboard from "./HostSalesDashboard";
+import HostSettings from "./HostSettings";
 
 // ✅ SummaryCard Component
 const SummaryCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode }> = ({
@@ -35,7 +35,7 @@ const SummaryCard: React.FC<{ title: string; value: string | number; icon: React
 
 const HostDashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const { events } = useEvents() as EventContextType;
+  const { events, fetchEvents } = useEvents() as EventContextType;
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -57,13 +57,21 @@ const HostDashboard: React.FC = () => {
     0
   );
 
-  const totalTicketsSold = 0; // placeholder
+  const totalTicketsSold = hostEvents.reduce(
+    (acc, event) =>
+      acc +
+      (Array.isArray(event.ticket_types)
+        ? event.ticket_types.reduce((sum, ticket) => sum + (ticket.sold || 0), 0)
+        : 0),
+    0
+  );
+
   const totalRevenue = hostEvents.reduce(
     (acc, event) =>
       acc +
       (Array.isArray(event.ticket_types)
         ? event.ticket_types.reduce(
-            (sum, ticket) => sum + ticket.price * (ticket.quantity || 0),
+            (sum, ticket) => sum + ticket.price * (ticket.sold || ticket.quantity || 0),
             0
           )
         : 0),
@@ -72,9 +80,14 @@ const HostDashboard: React.FC = () => {
 
   const recentEvents = hostEvents.slice(0, 4);
 
+  // ✅ Refetch events when dashboard mounts
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate("/");
   };
 
   const isActive = (path: string) =>
@@ -92,7 +105,7 @@ const HostDashboard: React.FC = () => {
     <Link
       to={to}
       className={`flex items-center px-4 py-3 rounded-md text-sm md:text-base transition duration-150 ease-in-out ${
-        isActive(to) ? 'bg-indigo-900 shadow-md' : 'hover:bg-indigo-700'
+        isActive(to) ? "bg-indigo-900 shadow-md" : "hover:bg-indigo-700"
       }`}
       onClick={() => setIsMobileMenuOpen(false)}
     >
@@ -107,21 +120,19 @@ const HostDashboard: React.FC = () => {
       <aside className="hidden md:flex flex-col w-64 bg-indigo-800 text-white min-h-screen p-4">
         <div className="mb-8">
           <h2 className="text-2xl font-bold">Host Dashboard</h2>
-          <p className="text-indigo-200 text-sm mt-1">
-            Welcome, {user?.full_name || 'Host'}
-          </p>
+          <p className="text-indigo-200 text-sm mt-1">Welcome, {user?.full_name || "Host"}</p>
         </div>
         <nav className="space-y-1 flex-1">
-          <NavLink to="/host-dashboard" icon={LayoutDashboardIcon}>
+          <NavLink to="/host/dashboard" icon={LayoutDashboardIcon}>
             Dashboard
           </NavLink>
-          <NavLink to="/host-dashboard/events" icon={CalendarIcon}>
+          <NavLink to="/host/dashboard/events" icon={CalendarIcon}>
             My Events
           </NavLink>
-          <NavLink to="/host-dashboard/sales" icon={DollarSignIcon}>
+          <NavLink to="/host/dashboard/sales" icon={DollarSignIcon}>
             Sales & Revenue
           </NavLink>
-          <NavLink to="/host-dashboard/settings" icon={SettingsIcon}>
+          <NavLink to="/host/dashboard/settings" icon={SettingsIcon}>
             Settings
           </NavLink>
         </nav>
@@ -152,16 +163,16 @@ const HostDashboard: React.FC = () => {
             </button>
           </div>
           <nav className="space-y-1">
-            <NavLink to="/host-dashboard" icon={LayoutDashboardIcon}>
+            <NavLink to="/host/dashboard" icon={LayoutDashboardIcon}>
               Dashboard
             </NavLink>
-            <NavLink to="/host-dashboard/events" icon={CalendarIcon}>
+            <NavLink to="/host/dashboard/events" icon={CalendarIcon}>
               My Events
             </NavLink>
-            <NavLink to="/host-dashboard/sales" icon={DollarSignIcon}>
+            <NavLink to="/host/dashboard/sales" icon={DollarSignIcon}>
               Sales & Revenue
             </NavLink>
-            <NavLink to="/host-dashboard/settings" icon={SettingsIcon}>
+            <NavLink to="/host/dashboard/settings" icon={SettingsIcon}>
               Settings
             </NavLink>
             <button
@@ -183,9 +194,7 @@ const HostDashboard: React.FC = () => {
             element={
               <>
                 <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
-                  <h1 className="text-2xl font-bold text-center sm:text-left">
-                    Dashboard Overview
-                  </h1>
+                  <h1 className="text-2xl font-bold text-center sm:text-left">Dashboard Overview</h1>
                   <Link
                     to="events/new"
                     className="bg-indigo-600 text-white px-4 py-2 rounded-md flex items-center justify-center hover:bg-indigo-700 w-full sm:w-auto"
@@ -241,9 +250,9 @@ const HostDashboard: React.FC = () => {
                         <p className="text-sm text-gray-600 mb-4">{event.location}</p>
                         <span
                           className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                            event.status === 'Approved'
-                              ? 'bg-green-200 text-green-800'
-                              : 'bg-yellow-200 text-yellow-800'
+                            event.status === "Approved"
+                              ? "bg-green-200 text-green-800"
+                              : "bg-yellow-200 text-yellow-800"
                           }`}
                         >
                           {event.status}

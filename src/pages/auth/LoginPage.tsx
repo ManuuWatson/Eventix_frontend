@@ -1,118 +1,152 @@
+// src/pages/LoginPage.tsx
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { MailIcon, LockIcon, EyeIcon, EyeOffIcon } from "lucide-react";
+import { MailIcon, LockIcon, EyeIcon, EyeOffIcon, Loader2Icon } from "lucide-react";
 import axios from "axios";
+import { useAuth } from "../../context/AuthContext";
 
 const LoginPage: React.FC = () => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
   const navigate = useNavigate();
+
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+  });
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setIsLoading(true);
+    setFormError(null);
+
+    if (!form.email || !form.password) {
+      setFormError("Please enter both email and password.");
+      return;
+    }
 
     try {
+      setIsLoading(true);
+
       const response = await axios.post(
         "https://eventix-backend2.onrender.com/api/users/login/",
-        { email, password },
+        {
+          email: form.email.trim(),
+          password: form.password.trim(),
+        },
         { headers: { "Content-Type": "application/json" } }
       );
 
-      // ✅ Save user + token
-      localStorage.setItem("token", response.data.access);
-      localStorage.setItem("refresh", response.data.refresh);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
-      localStorage.setItem("user_type", response.data.user.user_type);
+      if (response.status === 200 || response.status === 201) {
+        const { user, token } = response.data;
 
-      // ✅ Redirect based on user type
-      if (response.data.user.user_type === "host") {
-        navigate("/host-dashboard", { replace: true });
-      } else if (response.data.user.user_type === "user") {
-        navigate("/user-dashboard", { replace: true });
-      } else {
-        navigate("/", { replace: true });
+        // Save user data and token using the Auth context
+        login(user, token);
+
+        // Redirect instantly based on user_type
+        const destination =
+          user.user_type === "host"
+            ? "/host/dashboard"
+            : user.user_type === "user"
+            ? "/user-dashboard"
+            : "/";
+
+        navigate(destination, { replace: true });
+        return; // stop further execution
       }
-    } catch (err: any) {
-      console.error("Login error:", err.response?.data || err.message);
-      setError(
-        err.response?.data?.detail ||
-          err.response?.data?.error ||
-          "Invalid email or password."
-      );
+    } catch (error: any) {
+      console.error("Login failed:", error);
+      const backendError =
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        "Login failed. Please check your email or password.";
+      setFormError(backendError);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-indigo-100 px-6 py-12">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 via-white to-indigo-50 px-6 py-12">
+      <div className="w-full max-w-md bg-white shadow-xl rounded-2xl p-8 space-y-8 transition-all duration-300">
         <div className="text-center">
-          <h1 className="text-3xl font-extrabold text-gray-900">Welcome Back</h1>
-          <p className="mt-2 text-gray-600">
-            Sign in to access your{" "}
-            <span className="text-indigo-600 font-semibold">EventTix</span> account
+          <h2 className="text-3xl font-extrabold text-gray-900">Welcome Back 👋</h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Don't have an account?{" "}
+            <Link
+              to="/register"
+              className="font-medium text-indigo-600 hover:text-indigo-500 transition"
+            >
+              Sign up
+            </Link>
           </p>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-md text-sm text-red-700">
-            {error}
-          </div>
-        )}
+        <form className="space-y-6" onSubmit={handleSubmit}>
+          {formError && (
+            <div className="p-3 rounded-md border-l-4 bg-red-50 border-red-500 text-red-700">
+              <p className="text-sm">{formError}</p>
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
           <div className="relative">
-            <MailIcon className="absolute left-3 top-2.5 text-gray-400 h-5 w-5" />
+            <MailIcon className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
             <input
               type="email"
+              name="email"
+              placeholder="Email Address"
+              value={form.email}
+              onChange={handleChange}
               required
-              placeholder="Email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
             />
           </div>
 
           <div className="relative">
-            <LockIcon className="absolute left-3 top-2.5 text-gray-400 h-5 w-5" />
+            <LockIcon className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
             <input
               type={showPassword ? "text" : "password"}
-              required
+              name="password"
               placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              value={form.password}
+              onChange={handleChange}
+              required
+              className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
             >
-              {showPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+              {showPassword ? (
+                <EyeOffIcon className="h-5 w-5" />
+              ) : (
+                <EyeIcon className="h-5 w-5" />
+              )}
             </button>
           </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-2 px-4 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition disabled:bg-indigo-400"
+            className="w-full flex justify-center items-center gap-2 py-2 px-4 rounded-md font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition disabled:bg-indigo-400"
           >
-            {isLoading ? "Signing in..." : "Sign In"}
+            {isLoading ? (
+              <>
+                <Loader2Icon className="animate-spin h-5 w-5" />
+                Authenticating...
+              </>
+            ) : (
+              "Sign In"
+            )}
           </button>
         </form>
-
-        <p className="text-center text-sm text-gray-600">
-          Don’t have an account?{" "}
-          <Link to="/register" className="text-indigo-600 hover:text-indigo-800 font-medium">
-            Create one
-          </Link>
-        </p>
       </div>
     </div>
   );

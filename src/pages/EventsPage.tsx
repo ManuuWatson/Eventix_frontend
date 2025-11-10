@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import EventCard from "../components/events/EventCard";
 import EventFilter from "../components/events/EventFilter";
 import axios from "axios";
-import { CalendarIcon, MapPinIcon, TagIcon } from "lucide-react";
+import { StarIcon, UsersIcon, ShieldCheckIcon, ZapIcon } from "lucide-react";
 
 export type FilterFields = {
   search: string;
@@ -26,7 +26,8 @@ const EventsPage = () => {
 
   const [events, setEvents] = useState<any[]>([]);
   const baseUrl =
-    (import.meta as any).env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+    (import.meta as any).env.VITE_API_BASE_URL ||
+    "https://eventix-backend2.onrender.com";
 
   const fetchEvents = async () => {
     try {
@@ -53,7 +54,9 @@ const EventsPage = () => {
 
   const handleLikeUpdate = (event_id: string, likes_count: number) => {
     setEvents((prev) =>
-      prev.map((e) => (e.event_id === event_id ? { ...e, total_likes: likes_count } : e))
+      prev.map((e) =>
+        e.event_id === event_id ? { ...e, total_likes: likes_count } : e
+      )
     );
   };
 
@@ -79,7 +82,9 @@ const EventsPage = () => {
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   };
 
-  const [filteredEvents, setFilteredEvents] = useState<any[]>(() => filterEvents(filters));
+  const [filteredEvents, setFilteredEvents] = useState<any[]>(() =>
+    filterEvents(filters)
+  );
 
   useEffect(() => {
     setFilteredEvents(filterEvents(filters));
@@ -99,7 +104,10 @@ const EventsPage = () => {
 
   const [currentImage, setCurrentImage] = useState(0);
   useEffect(() => {
-    const interval = setInterval(() => setCurrentImage((prev) => (prev + 1) % carouselImages.length), 4000);
+    const interval = setInterval(
+      () => setCurrentImage((prev) => (prev + 1) % carouselImages.length),
+      4000
+    );
     return () => clearInterval(interval);
   }, [carouselImages.length]);
 
@@ -107,23 +115,31 @@ const EventsPage = () => {
     <div className="container mx-auto px-4 py-8">
       {/* Hero */}
       <section className="relative mb-12 h-[500px] rounded-lg overflow-hidden shadow-lg">
-        <div
-          className="flex w-full h-full transition-transform duration-900 ease-in-out"
-          style={{ transform: `translateX(-${currentImage * 100}%)`, width: `${carouselImages.length * 100}%` }}
-        >
-          {carouselImages.map((image, index) => (
-            <div key={index} className="w-full flex-shrink-0 relative">
-              <img src={image} alt={`Slide ${index + 1}`} className="w-full h-full object-cover" />
-            </div>
-          ))}
-        </div>
-        <div className="absolute inset-0 bg-black bg-opacity-40 flex flex-col justify-center items-center text-center text-white px-4">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Discover Amazing Events</h1>
-          <p className="text-lg md:text-xl max-w-2xl">
-            Find and book tickets for the best events happening near you.
-          </p>
-        </div>
-      </section>
+  <div
+    className="flex w-full h-full transition-transform duration-900 ease-in-out"
+    style={{
+      transform: `translateX(-${currentImage * 100}%)`,
+      width: `${carouselImages.length * 100}%`,
+    }}
+  >
+    {carouselImages.map((image, index) => (
+      <div key={index} className="w-full flex-shrink-0 relative">
+        <img
+          src={image}
+          alt={`Slide ${index + 1}`}
+          className="w-full h-full object-cover object-center"
+        />
+      </div>
+    ))}
+  </div>
+
+  <div className="absolute inset-0 bg-black bg-opacity-40 flex flex-col justify-center items-center text-center text-white px-4">
+    <h1 className="text-4xl md:text-5xl font-bold mb-4">Discover Amazing Events</h1>
+    <p className="text-lg md:text-xl max-w-2xl">
+      Find and book tickets for the best events happening near you.
+    </p>
+  </div>
+ </section>
 
       {/* Filter */}
       <section className="mb-12">
@@ -134,14 +150,20 @@ const EventsPage = () => {
       <section>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-semibold text-gray-900">Upcoming Events</h2>
-          <div className="text-sm text-gray-500">Showing {filteredEvents.length} approved events</div>
+          <div className="text-sm text-gray-500">
+            Showing {filteredEvents.length} approved events
+          </div>
         </div>
         {filteredEvents.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-8 text-center">
             <h3 className="text-xl font-medium text-gray-900 mb-2">No approved events found</h3>
-            <p className="text-gray-600 mb-4">Try adjusting your filters to find more events.</p>
+            <p className="text-gray-600 mb-4">
+              Try adjusting your filters to find more events.
+            </p>
             <button
-              onClick={() => setFilters({ search: "", category: "", date: "", location: "" })}
+              onClick={() =>
+                setFilters({ search: "", category: "", date: "", location: "" })
+              }
               className="text-indigo-600 font-medium hover:text-indigo-800"
             >
               Clear all filters
@@ -154,6 +176,41 @@ const EventsPage = () => {
             ))}
           </div>
         )}
+      </section>
+
+      {/* Why Choose Us */}
+      <section className="mt-16 py-12 bg-indigo-50 rounded-lg shadow-lg">
+        <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">Why Choose Us</h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-6xl mx-auto">
+          <div className="text-center p-6 bg-white rounded-xl shadow hover:shadow-lg transition">
+            <StarIcon className="mx-auto mb-4 h-10 w-10 text-indigo-600" />
+            <h3 className="text-xl font-semibold mb-2">Best Events</h3>
+            <p className="text-gray-600">
+              We feature top-rated and handpicked events so you always enjoy quality experiences.
+            </p>
+          </div>
+          <div className="text-center p-6 bg-white rounded-xl shadow hover:shadow-lg transition">
+            <UsersIcon className="mx-auto mb-4 h-10 w-10 text-indigo-600" />
+            <h3 className="text-xl font-semibold mb-2">Community Driven</h3>
+            <p className="text-gray-600">
+              Join a vibrant community of event-goers and hosts for unforgettable moments.
+            </p>
+          </div>
+          <div className="text-center p-6 bg-white rounded-xl shadow hover:shadow-lg transition">
+            <ShieldCheckIcon className="mx-auto mb-4 h-10 w-10 text-indigo-600" />
+            <h3 className="text-xl font-semibold mb-2">Safe & Secure</h3>
+            <p className="text-gray-600">
+              Your transactions and personal information are always protected with us.
+            </p>
+          </div>
+          <div className="text-center p-6 bg-white rounded-xl shadow hover:shadow-lg transition">
+            <ZapIcon className="mx-auto mb-4 h-10 w-10 text-indigo-600" />
+            <h3 className="text-xl font-semibold mb-2">Fast & Reliable</h3>
+            <p className="text-gray-600">
+              Experience lightning-fast booking and instant updates for all events.
+            </p>
+          </div>
+        </div>
       </section>
     </div>
   );
