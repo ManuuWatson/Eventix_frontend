@@ -1,22 +1,37 @@
-// src/pages/LoginPage.tsx
-import React, { useState } from "react";
+// src/pages/auth/LoginPage.tsx
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { MailIcon, LockIcon, EyeIcon, EyeOffIcon, Loader2Icon } from "lucide-react";
+import {
+  MailIcon,
+  LockIcon,
+  EyeIcon,
+  EyeOffIcon,
+  Loader2Icon,
+} from "lucide-react";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 
 const LoginPage: React.FC = () => {
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-  });
-
+  const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      const destination =
+        user.user_type === "host"
+          ? "/host/dashboard"
+          : user.user_type === "user"
+          ? "/user-dashboard"
+          : "/";
+      navigate(destination, { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -44,28 +59,31 @@ const LoginPage: React.FC = () => {
       );
 
       if (response.status === 200 || response.status === 201) {
-        const { user, token } = response.data;
+        const { user: loggedUser, token } = response.data;
 
-        // Save user data and token using the Auth context
-        login(user, token);
+        // ✅ Store in context + localStorage
+        login(loggedUser, token);
 
-        // Redirect instantly based on user_type
+        // Clear form
+        setForm({ email: "", password: "" });
+
+        // Redirect immediately
         const destination =
-          user.user_type === "host"
+          loggedUser.user_type === "host"
             ? "/host/dashboard"
-            : user.user_type === "user"
+            : loggedUser.user_type === "user"
             ? "/user-dashboard"
             : "/";
-
         navigate(destination, { replace: true });
-        return; // stop further execution
       }
     } catch (error: any) {
       console.error("Login failed:", error);
       const backendError =
         error.response?.data?.detail ||
         error.response?.data?.message ||
-        "Login failed. Please check your email or password.";
+        (window.navigator.onLine
+          ? "Login failed. Please check your credentials."
+          : "No internet connection. Please reconnect and try again.");
       setFormError(backendError);
     } finally {
       setIsLoading(false);
@@ -76,9 +94,11 @@ const LoginPage: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 via-white to-indigo-50 px-6 py-12">
       <div className="w-full max-w-md bg-white shadow-xl rounded-2xl p-8 space-y-8 transition-all duration-300">
         <div className="text-center">
-          <h2 className="text-3xl font-extrabold text-gray-900">Welcome Back 👋</h2>
+          <h2 className="text-3xl font-extrabold text-gray-900">
+            Welcome Back 👋
+          </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Don't have an account?{" "}
+            Don’t have an account?{" "}
             <Link
               to="/register"
               className="font-medium text-indigo-600 hover:text-indigo-500 transition"

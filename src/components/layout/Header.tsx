@@ -49,28 +49,28 @@ const Header = () => {
               <input type="text" placeholder="Search events..." className="w-full py-2 pl-10 pr-4 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} aria-label="Search events" />
             </form>
           </div>
-          {/* Auth Buttons / User Menu */}
+          {/* Auth Buttons / User Menu (Desktop) */}
           <div className="hidden md:flex items-center space-x-4">
             {user ? (
               <div className="relative" ref={dropdownRef}>
                 {/* Button toggles dropdown on click */}
                 <button type="button" className="flex items-center space-x-1 text-gray-700 hover:text-indigo-600" onClick={() => setIsDropdownOpen((prev) => !prev)} >
                   <UserCircleIcon className="h-6 w-6" />
-                  <span>{user.name}</span>
+                  {/* Desktop user name display (using full_name) */}
+                  <span>{user.full_name}</span> 
                 </button>
                 {/* Dropdown (click-to-open) */}
                 {isDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
                     {user.user_type === 'host' && (
                       <Link 
-                        to="/host-dashboard" // <-- Fixed path
+                        to="/host/dashboard" 
                         className="block px-4 py-2 text-gray-700 hover:bg-indigo-100" 
                         onClick={() => setIsDropdownOpen(false)}
                       > 
                         Host Dashboard 
                       </Link>
                     )}
-                    {/* Removed admin link */}
                     <button type="button" onClick={() => { logout(); setIsDropdownOpen(false); }} className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-indigo-100" > Logout </button>
                   </div>
                 )}
@@ -87,7 +87,8 @@ const Header = () => {
             {isMenuOpen ? <XIcon className="h-6 w-6" /> : <MenuIcon className="h-6 w-6" />}
           </button>
         </div>
-        {/* Mobile Menu */}
+        
+        {/* Mobile Menu Panel (expanded on small screens) */}
         {isMenuOpen && (
           <div className="md:hidden mt-4 pb-4">
             <form onSubmit={handleSearch} className="mb-4">
@@ -99,15 +100,20 @@ const Header = () => {
               <Link to="/contact" className="text-gray-700 hover:text-indigo-600 py-2"> Contact </Link>
               {user ? (
                 <>
+                  {/* MOBILE VIEW: Display user name with icon */}
+                  <div className="flex items-center space-x-2 text-gray-700 py-2">
+                      <UserCircleIcon className="h-5 w-5" />
+                      <span>{user.full_name}</span>
+                  </div>
+                  
                   {user.user_type === 'host' && (
                     <Link 
-                      to="/host-dashboard" // <-- Fixed path
-                      className="text-gray-700 hover:text-indigo-600 py-2"
+                      to="/host/dashboard" 
+                      className="text-gray-700 hover:text-indigo-600 py-2 ml-4" // Indent dashboard link slightly
                     > 
                       Host Dashboard 
                     </Link>
                   )}
-                  {/* Removed admin link */}
                   <button type="button" onClick={logout} className="text-left text-gray-700 hover:text-indigo-600 py-2" > Logout </button>
                 </>
               ) : (
