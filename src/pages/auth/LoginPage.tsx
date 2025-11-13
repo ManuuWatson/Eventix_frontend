@@ -1,6 +1,6 @@
 // src/pages/auth/LoginPage.tsx
-import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   MailIcon,
   LockIcon,
@@ -12,26 +12,15 @@ import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 
 const LoginPage: React.FC = () => {
-  const { login, user } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as any)?.from?.pathname || "/dashboard";
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Redirect if already logged in
-  useEffect(() => {
-    if (user) {
-      const destination =
-        user.user_type === "host"
-          ? "/host/dashboard"
-          : user.user_type === "user"
-          ? "/user-dashboard"
-          : "/";
-      navigate(destination, { replace: true });
-    }
-  }, [user, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -61,20 +50,14 @@ const LoginPage: React.FC = () => {
       if (response.status === 200 || response.status === 201) {
         const { user: loggedUser, token } = response.data;
 
-        // ✅ Store in context + localStorage
+        // store in context + localStorage
         login(loggedUser, token);
 
-        // Clear form
+        // clear form
         setForm({ email: "", password: "" });
 
-        // Redirect immediately
-        const destination =
-          loggedUser.user_type === "host"
-            ? "/host/dashboard"
-            : loggedUser.user_type === "user"
-            ? "/user-dashboard"
-            : "/";
-        navigate(destination, { replace: true });
+        // Navigate to unified dashboard route (role-based redirect will happen there)
+        navigate(from, { replace: true });
       }
     } catch (error: any) {
       console.error("Login failed:", error);
@@ -94,15 +77,10 @@ const LoginPage: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 via-white to-indigo-50 px-6 py-12">
       <div className="w-full max-w-md bg-white shadow-xl rounded-2xl p-8 space-y-8 transition-all duration-300">
         <div className="text-center">
-          <h2 className="text-3xl font-extrabold text-gray-900">
-            Welcome Back 👋
-          </h2>
+          <h2 className="text-3xl font-extrabold text-gray-900">Welcome Back 👋</h2>
           <p className="mt-2 text-sm text-gray-600">
             Don’t have an account?{" "}
-            <Link
-              to="/register"
-              className="font-medium text-indigo-600 hover:text-indigo-500 transition"
-            >
+            <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
               Sign up
             </Link>
           </p>
@@ -144,11 +122,7 @@ const LoginPage: React.FC = () => {
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
             >
-              {showPassword ? (
-                <EyeOffIcon className="h-5 w-5" />
-              ) : (
-                <EyeIcon className="h-5 w-5" />
-              )}
+              {showPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
             </button>
           </div>
 
