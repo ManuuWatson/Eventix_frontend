@@ -11,7 +11,7 @@ console.log("🌐 Axios Base URL:", API_BASE_URL);
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    "Content-Type": "application/json", // Default for JSON requests
+    "Content-Type": "application/json",
   },
 });
 
@@ -50,8 +50,6 @@ axiosInstance.interceptors.request.use(
 // Response interceptor for logging and error handling
 axiosInstance.interceptors.response.use(
   (response) => {
-    // Optional: log successful responses in development
-    // console.log("✅ Axios Response:", response);
     return response;
   },
   (error) => {

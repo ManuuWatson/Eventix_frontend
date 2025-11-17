@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import EventCard from "../components/events/EventCard";
 import EventFilter from "../components/events/EventFilter";
-import axios from "axios";
+import axiosInstance from "../api/axiosInstance";
 import { StarIcon, UsersIcon, ShieldCheckIcon, ZapIcon } from "lucide-react";
 
 export type FilterFields = {
@@ -24,19 +24,18 @@ const EventsPage = () => {
     location: "",
   });
   const [events, setEvents] = useState<any[]>([]);
-  const baseUrl = (import.meta as any).env.VITE_API_BASE_URL || "https://eventix-backend2.onrender.com";
 
   const fetchEvents = async () => {
     try {
-      // Fetch all events (approved or not).
-      // The backend should ideally filter this for public endpoints.
-      const res = await axios.get(`${baseUrl}/api/events/`);
+      // Use axiosInstance; baseURL already includes /api
+      const res = await axiosInstance.get("/events/");
       const data = res.data;
       const updatedEvents = data.map((event: any) => ({
         ...event,
         total_likes: event.total_likes || 0,
         liked_by_user:
-          event.liked_by_user || localStorage.getItem(`anon_liked_${event.event_id}`) === "true",
+          event.liked_by_user ||
+          localStorage.getItem(`anon_liked_${event.event_id}`) === "true",
       }));
       setEvents(updatedEvents);
     } catch (err) {
@@ -59,7 +58,7 @@ const EventsPage = () => {
   const filterEvents = (f: FilterFields) => {
     const q = (f.search || "").toLowerCase();
     return events
-      .filter((e) => e.is_approved === true) // <-- Ensures only approved events are shown publicly
+      .filter((e) => e.is_approved === true)
       .filter((e) => {
         const title = (e.title || e.name || "").toLowerCase();
         const description = (e.description || "").toLowerCase();
@@ -68,14 +67,10 @@ const EventsPage = () => {
         const dateField = (e.date || "").toString();
 
         const searchMatch =
-          !q ||
-          title.includes(q) ||
-          description.includes(q) ||
-          locationField.includes(q);
+          !q || title.includes(q) || description.includes(q) || locationField.includes(q);
         const categoryMatch = !f.category || categoryField === f.category;
         const dateMatch = !f.date || dateField === f.date;
-        const locationMatch =
-          !f.location || locationField.includes(f.location.toLowerCase());
+        const locationMatch = !f.location || locationField.includes(f.location.toLowerCase());
 
         return searchMatch && categoryMatch && dateMatch && locationMatch;
       })
@@ -113,7 +108,7 @@ const EventsPage = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Hero */}
+      {/* Hero Section */}
       <section className="relative mb-12 h-[500px] rounded-lg overflow-hidden shadow-lg">
         <div
           className="flex w-full h-full transition-transform duration-900 ease-in-out"
@@ -150,12 +145,9 @@ const EventsPage = () => {
       {/* Events */}
       <section>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Upcoming Events
-          </h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Upcoming Events</h2>
           <div className="text-sm text-gray-500">
-            {" "}
-            Showing {filteredEvents.length} approved events{" "}
+            Showing {filteredEvents.length} approved events
           </div>
         </div>
         {filteredEvents.length === 0 ? (
@@ -164,8 +156,7 @@ const EventsPage = () => {
               No approved events found
             </h3>
             <p className="text-gray-600 mb-4">
-              {" "}
-              Try adjusting your filters to find more events.{" "}
+              Try adjusting your filters to find more events.
             </p>
             <button
               onClick={() =>
@@ -173,18 +164,13 @@ const EventsPage = () => {
               }
               className="text-indigo-600 font-medium hover:text-indigo-800"
             >
-              {" "}
-              Clear all filters{" "}
+              Clear all filters
             </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredEvents.map((event) => (
-              <EventCard
-                key={event.event_id}
-                event={event}
-                onLikeUpdate={handleLikeUpdate}
-              />
+              <EventCard key={event.event_id} event={event} onLikeUpdate={handleLikeUpdate} />
             ))}
           </div>
         )}
@@ -200,36 +186,28 @@ const EventsPage = () => {
             <StarIcon className="mx-auto mb-4 h-10 w-10 text-indigo-600" />
             <h3 className="text-xl font-semibold mb-2">Best Events</h3>
             <p className="text-gray-600">
-              {" "}
-              We feature top-rated and handpicked events so you always enjoy
-              quality experiences.{" "}
+              We feature top-rated and handpicked events so you always enjoy quality experiences.
             </p>
           </div>
           <div className="text-center p-6 bg-white rounded-xl shadow hover:shadow-lg transition">
             <UsersIcon className="mx-auto mb-4 h-10 w-10 text-indigo-600" />
             <h3 className="text-xl font-semibold mb-2">Community Driven</h3>
             <p className="text-gray-600">
-              {" "}
-              Join a vibrant community of event-goers and hosts for
-              unforgettable moments.{" "}
+              Join a vibrant community of event-goers and hosts for unforgettable moments.
             </p>
           </div>
           <div className="text-center p-6 bg-white rounded-xl shadow hover:shadow-lg transition">
             <ShieldCheckIcon className="mx-auto mb-4 h-10 w-10 text-indigo-600" />
             <h3 className="text-xl font-semibold mb-2">Safe & Secure</h3>
             <p className="text-gray-600">
-              {" "}
-              Your transactions and personal information are always protected
-              with us.{" "}
+              Your transactions and personal information are always protected with us.
             </p>
           </div>
           <div className="text-center p-6 bg-white rounded-xl shadow hover:shadow-lg transition">
             <ZapIcon className="mx-auto mb-4 h-10 w-10 text-indigo-600" />
             <h3 className="text-xl font-semibold mb-2">Fast & Reliable</h3>
             <p className="text-gray-600">
-              {" "}
-              Book tickets instantly and access event information seamlessly on
-              our platform.{" "}
+              Book tickets instantly and access event information seamlessly on our platform.
             </p>
           </div>
         </div>
