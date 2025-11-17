@@ -30,7 +30,7 @@ const EventsPage = () => {
     try {
       // Fetch all events (approved or not).
       // The backend should ideally filter this for public endpoints.
-      const res = await axios.get(`${baseUrl}/events/`);
+      const res = await axios.get(`${baseUrl}/api/events/`);
       const data = res.data;
       const updatedEvents = data.map((event: any) => ({
         ...event,
