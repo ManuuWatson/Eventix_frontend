@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import EventCard from "../components/events/EventCard";
 import EventFilter from "../components/events/EventFilter";
-import axiosInstance from "../api/axiosInstance";
+import axiosInstance from "../api/axiosInstance.ts";
 import { StarIcon, UsersIcon, ShieldCheckIcon, ZapIcon } from "lucide-react";
 
 export type FilterFields = {
