@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import EventCard from "../components/events/EventCard";
 import EventFilter from "../components/events/EventFilter";
-import axiosInstance from "../api/axiosInstance.ts";
+import axios from "axios";
 import { StarIcon, UsersIcon, ShieldCheckIcon, ZapIcon } from "lucide-react";
 
 export type FilterFields = {
@@ -25,24 +25,28 @@ const EventsPage = () => {
   });
   const [events, setEvents] = useState<any[]>([]);
 
- const fetchEvents = async () => {
-  try {
-    // baseURL already includes /api, so just call /events/
-    const res = await axiosInstance.get("/events/");
-    const data = res.data;
-    const updatedEvents = data.map((event: any) => ({
-      ...event,
-      total_likes: event.total_likes || 0,
-      liked_by_user:
-        event.liked_by_user ||
-        localStorage.getItem(`anon_liked_${event.event_id}`) === "true",
-    }));
-    setEvents(updatedEvents);
-  } catch (err) {
-    console.error("Failed to fetch events:", err);
-  }
-};
+  // 🔥 HARDCODED API URL FOR TESTING
+  const fetchEvents = async () => {
+    try {
+      const res = await axios.get(
+        "https://eventix-backend2.onrender.com/api/events/"
+      );
 
+      const data = res.data;
+
+      const updatedEvents = data.map((event: any) => ({
+        ...event,
+        total_likes: event.total_likes || 0,
+        liked_by_user:
+          event.liked_by_user ||
+          localStorage.getItem(`anon_liked_${event.event_id}`) === "true",
+      }));
+
+      setEvents(updatedEvents);
+    } catch (err) {
+      console.error("Failed to fetch events:", err);
+    }
+  };
 
   useEffect(() => {
     fetchEvents();
@@ -68,14 +72,23 @@ const EventsPage = () => {
         const dateField = (e.date || "").toString();
 
         const searchMatch =
-          !q || title.includes(q) || description.includes(q) || locationField.includes(q);
+          !q ||
+          title.includes(q) ||
+          description.includes(q) ||
+          locationField.includes(q);
+
         const categoryMatch = !f.category || categoryField === f.category;
         const dateMatch = !f.date || dateField === f.date;
-        const locationMatch = !f.location || locationField.includes(f.location.toLowerCase());
+        const locationMatch =
+          !f.location ||
+          locationField.includes(f.location.toLowerCase());
 
         return searchMatch && categoryMatch && dateMatch && locationMatch;
       })
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      .sort(
+        (a, b) =>
+          new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
   };
 
   const [filteredEvents, setFilteredEvents] = useState<any[]>(() =>
@@ -97,13 +110,16 @@ const EventsPage = () => {
     "https://images.unsplash.com/photo-1515168833906-d2a3b82b302a?auto=format&fit=crop&w=1500&q=80",
     "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1500&q=80",
   ];
+
   const [currentImage, setCurrentImage] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(
-      () => setCurrentImage((prev) => (prev + 1) % carouselImages.length),
+      () =>
+        setCurrentImage((prev) => (prev + 1) % carouselImages.length),
       4000
     );
+
     return () => clearInterval(interval);
   }, [carouselImages.length]);
 
@@ -146,11 +162,14 @@ const EventsPage = () => {
       {/* Events */}
       <section>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900">Upcoming Events</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">
+            Upcoming Events
+          </h2>
           <div className="text-sm text-gray-500">
             Showing {filteredEvents.length} approved events
           </div>
         </div>
+
         {filteredEvents.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-8 text-center">
             <h3 className="text-xl font-medium text-gray-900 mb-2">
@@ -171,7 +190,11 @@ const EventsPage = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredEvents.map((event) => (
-              <EventCard key={event.event_id} event={event} onLikeUpdate={handleLikeUpdate} />
+              <EventCard
+                key={event.event_id}
+                event={event}
+                onLikeUpdate={handleLikeUpdate}
+              />
             ))}
           </div>
         )}
