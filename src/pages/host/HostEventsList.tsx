@@ -1,3 +1,4 @@
+// src/pages/host/HostEventsList.tsx
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -9,7 +10,7 @@ import {
   MapPinIcon,
   CalendarIcon,
 } from "lucide-react";
-import axios from "axios";
+import axiosInstance from "../../api/axiosInstance";
 import { useAuth } from "../../context/AuthContext";
 
 interface TicketType {
@@ -35,7 +36,7 @@ interface EventData {
 }
 
 const HostEventsList: React.FC = () => {
-  const { authToken, logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const [events, setEvents] = useState<EventData[]>([]);
@@ -44,38 +45,34 @@ const HostEventsList: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const api = axios.create({
-    baseURL: "http://127.0.0.1:8000/api/",
-    headers: {
-      Authorization: authToken ? `Bearer ${authToken}` : "",
-    },
-  });
-
   const fetchEvents = useCallback(async () => {
-    if (!authToken) {
+    if (!user) {
       setError("User not authenticated. Please log in again.");
       setIsLoading(false);
       return;
     }
+
     setIsLoading(true);
     try {
-      const response = await api.get("events/my_events/");
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      const userId = user.id || user.host_id;
-      const myEvents = response.data.filter((event: EventData) => event.host_id === userId);
+      // Use centralized axiosInstance
+      const response = await axiosInstance.get("/events/my_events/");
+      const myEvents = response.data.filter(
+        (event: EventData) => event.host_id === user.id
+      );
       setEvents(myEvents);
       setError(null);
-    } catch (error) {
-      console.error("Error fetching events:", error);
-      setError("Failed to fetch events. Please try again.");
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
+    } catch (err: any) {
+      console.error("Error fetching events:", err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
         logout();
         navigate("/login");
+      } else {
+        setError("Failed to fetch events. Please try again.");
       }
     } finally {
       setIsLoading(false);
     }
-  }, [authToken, logout, navigate]);
+  }, [user, logout, navigate]);
 
   useEffect(() => {
     fetchEvents();
@@ -94,18 +91,18 @@ const HostEventsList: React.FC = () => {
 
   const confirmDelete = async (id: number) => {
     try {
-      await api.delete(`events/${id}/`);
+      await axiosInstance.delete(`/events/${id}/`);
       setEvents((prev) => prev.filter((e) => e.id !== id));
       setDeleteConfirmation(null);
-    } catch (error) {
-      console.error("Error deleting event:", error);
+    } catch (err) {
+      console.error("Error deleting event:", err);
       setError("Failed to delete event.");
     }
   };
 
   const handleEdit = (id: number) => navigate(`/host/events/edit/${id}`);
   const handleView = (id: number) => navigate(`/host/events/${id}`);
-  const handleCreate = () => navigate("/host-dashboard/events/new");
+  const handleCreate = () => navigate("/host/dashboard/events/new");
 
   const formatDateTime = (dateString: string) => {
     if (!dateString) return { datePart: "N/A", timePart: "" };

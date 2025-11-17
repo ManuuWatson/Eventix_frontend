@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { PlusIcon, TrashIcon } from "lucide-react";
-import axios from "axios";
+import axiosInstance from "../../api/axiosInstance";
 
 type TicketType = {
   id: string;
@@ -13,7 +13,7 @@ type TicketType = {
 const HostEventForm: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
-  const { user, authToken } = useAuth();
+  const { user } = useAuth();
 
   const isEditMode = !!eventId;
 
@@ -25,49 +25,47 @@ const HostEventForm: React.FC = () => {
     location: "",
   });
 
-  const [posterPreview, setPosterPreview] = useState<string | null>(null);
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([
     { id: `new-${Date.now()}`, name: "Standard", price: 0 },
   ]);
+
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState("");
+  const [posterPreview, setPosterPreview] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch event details if editing
+  // Fetch existing event when editing
   useEffect(() => {
-    if (isEditMode && authToken) {
-      axios
-        .get(`http://127.0.0.1:8000/api/events/${eventId}/`, {
-          headers: { Authorization: `Bearer ${authToken}` },
-        })
-        .then((res) => {
-          const event = res.data;
-          setFormData({
-            name: event.name || "",
-            description: event.description || "",
-            date: event.date || "",
-            location: event.location || "",
-            poster: null, // Keep null for editing
-          });
-          setPosterPreview(event.poster || null);
-          if (event.ticket_types) {
-            setTicketTypes(
-              event.ticket_types.map((t: any, i: number) => ({
-                id: `existing-${i}`,
-                name: t.name,
-                price: t.price,
-              }))
-            );
-          }
-        })
-        .catch((err) => {
-          console.error("Error fetching event:", err);
-          setMessage("⚠️ Failed to load event details for editing.");
-        });
-    }
-  }, [isEditMode, eventId, authToken]);
+    if (!isEditMode) return;
 
-  // Handle input changes
+    axiosInstance
+      .get(`/events/${eventId}/`)
+      .then((res) => {
+        const event = res.data;
+
+        setFormData({
+          name: event.name || "",
+          description: event.description || "",
+          date: event.date || "",
+          location: event.location || "",
+          poster: null,
+        });
+
+        setPosterPreview(event.poster || null);
+
+        if (event.ticket_types) {
+          setTicketTypes(
+            event.ticket_types.map((t: any, i: number) => ({
+              id: `existing-${i}`,
+              name: t.name,
+              price: t.price,
+            }))
+          );
+        }
+      })
+      .catch(() => setMessage("⚠️ Failed to load event details."));
+  }, [isEditMode, eventId]);
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -76,48 +74,41 @@ const HostEventForm: React.FC = () => {
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
-  // Handle poster upload
   const handlePosterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    setPosterPreview(URL.createObjectURL(file)); // Preview
-    setFormData((prev) => ({ ...prev, poster: file })); // Store file object
-    if (errors.poster) setErrors((prev) => ({ ...prev, poster: "" }));
+    setPosterPreview(URL.createObjectURL(file));
+    setFormData((prev) => ({ ...prev, poster: file }));
   };
 
-  // Handle ticket type updates
   const handleTicketChange = (
     index: number,
     field: keyof TicketType,
     value: string | number
   ) => {
-    setTicketTypes((prev) => {
-      const updated = [...prev];
-      updated[index] = {
-        ...updated[index],
-        [field]: field === "price" ? Number(value) : value,
-      };
-      return updated;
-    });
+    setTicketTypes((prev) =>
+      prev.map((t, i) =>
+        i === index
+          ? { ...t, [field]: field === "price" ? Number(value) : value }
+          : t
+      )
+    );
   };
 
-  // Add or remove ticket types
   const addTicketType = () =>
     setTicketTypes((prev) => [
       ...prev,
       { id: `new-${Date.now()}`, name: "", price: 0 },
     ]);
 
-  const removeTicketType = (index: number) => {
+  const removeTicketType = (index: number) =>
     setTicketTypes((prev) =>
       prev.length > 1 ? prev.filter((_, i) => i !== index) : prev
     );
-  };
 
-  // Validation
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
+
     if (!formData.name.trim()) newErrors.name = "Event name is required";
     if (!formData.description.trim())
       newErrors.description = "Event description is required";
@@ -125,27 +116,25 @@ const HostEventForm: React.FC = () => {
     if (!formData.location.trim())
       newErrors.location = "Event location is required";
     if (!formData.poster && !isEditMode)
-      newErrors.poster = "Poster image is required";
+      newErrors.poster = "Poster is required";
 
     ticketTypes.forEach((t, i) => {
-      if (!t.name?.trim())
+      if (!t.name.trim())
         newErrors[`ticket-${i}-name`] = "Ticket name is required";
-      if (t.price === undefined || isNaN(t.price) || t.price < 0)
-        newErrors[`ticket-${i}-price`] = "Ticket price must be >= 0";
+      if (t.price < 0)
+        newErrors[`ticket-${i}-price`] = "Price must be >= 0";
     });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Submit event form
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    if (!user || !authToken) {
-      setMessage("❌ User not authenticated. Please log in again.");
-      setIsSubmitting(false);
+    if (!user) {
+      setMessage("❌ User not authenticated.");
       return;
     }
 
@@ -156,29 +145,22 @@ const HostEventForm: React.FC = () => {
       const formPayload = new FormData();
       formPayload.append("name", formData.name);
       formPayload.append("description", formData.description);
-      formPayload.append("date", formData.date.split("T")[0]);
+      formPayload.append("date", formData.date);
       formPayload.append("location", formData.location);
-      formPayload.append("host_name", user.full_name || "Unknown Host");
+      formPayload.append("host_name", user.full_name || "Unknown");
 
-      if (formData.poster) formPayload.append("poster", formData.poster); // File object
+      if (formData.poster) {
+        formPayload.append("poster", formData.poster);
+      }
 
-      // Append ticket types as JSON string
-      formPayload.append(
-        "ticket_types",
-        JSON.stringify(ticketTypes.map((t) => ({ name: t.name, price: t.price })))
-      );
+      // ✅ Ticket types as JSON string
+      formPayload.append("ticket_types", JSON.stringify(ticketTypes));
 
-      const url = isEditMode
-        ? `http://127.0.0.1:8000/api/events/${eventId}/`
-        : `http://127.0.0.1:8000/api/events/`;
-      const method = isEditMode ? axios.put : axios.post;
+      const endpoint = isEditMode ? `/events/${eventId}/` : `/events/`;
 
-      const response = await method(url, formPayload, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${authToken}`,
-        },
-      });
+      const response = isEditMode
+        ? await axiosInstance.put(endpoint, formPayload)
+        : await axiosInstance.post(endpoint, formPayload);
 
       if (response.status === 200 || response.status === 201) {
         setMessage(
@@ -186,29 +168,28 @@ const HostEventForm: React.FC = () => {
             ? "✅ Event updated successfully!"
             : "✅ Event created successfully! Awaiting admin approval."
         );
-
-        setTimeout(() => {
-          navigate("/host-dashboard/events", { state: { refresh: true } });
-        }, 800);
+        setTimeout(
+          () => navigate("/host/dashboard/", { state: { refresh: true } }),
+          900
+        );
       } else {
-        setMessage("⚠️ Something went wrong. Please try again.");
+        setMessage("⚠️ Something went wrong.");
       }
     } catch (err: any) {
-      console.error("❌ Error saving event:", err);
-      if (err.response?.status === 401 || err.response?.status === 403) {
-        setMessage("❌ Authentication failed. Please log in again.");
-      } else {
-        setMessage("❌ Failed to save event. Check console for details.");
-      }
+      console.error("❌ Error:", err);
+      setMessage(
+        err.response?.data?.detail ||
+          "❌ Failed to save event. Check console for details."
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">
-        {isEditMode ? "Edit Event" : "Create New Event"}
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold mb-6">
+        {isEditMode ? "Edit Event" : "Create Event"}
       </h1>
 
       {message && (
@@ -221,167 +202,162 @@ const HostEventForm: React.FC = () => {
         </p>
       )}
 
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="bg-white p-6 rounded-lg shadow-md">
         <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6">
           {/* Event Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Event Name*
-            </label>
+            <label className="font-medium">Event Name*</label>
             <input
               type="text"
               name="name"
               value={formData.name}
               onChange={handleInputChange}
-              className={`w-full px-4 py-2 border rounded-md ${
+              className={`w-full px-4 py-2 border rounded ${
                 errors.name ? "border-red-500" : "border-gray-300"
               }`}
             />
-            {errors.name && (
-              <p className="text-sm text-red-600">{errors.name}</p>
-            )}
+            {errors.name && <p className="text-red-600">{errors.name}</p>}
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description*
-            </label>
+            <label className="font-medium">Description*</label>
             <textarea
               name="description"
+              rows={4}
               value={formData.description}
               onChange={handleInputChange}
-              rows={4}
-              className={`w-full px-4 py-2 border rounded-md ${
+              className={`w-full px-4 py-2 border rounded ${
                 errors.description ? "border-red-500" : "border-gray-300"
               }`}
             />
             {errors.description && (
-              <p className="text-sm text-red-600">{errors.description}</p>
-            )}
-          </div>
-
-          {/* Poster */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Event Poster*
-            </label>
-            <input type="file" accept="image/*" onChange={handlePosterChange} />
-            {posterPreview && (
-              <img
-                src={posterPreview}
-                alt="Preview"
-                className="mt-2 h-32 rounded-md object-cover"
-              />
-            )}
-            {errors.poster && (
-              <p className="text-sm text-red-600">{errors.poster}</p>
+              <p className="text-red-600">{errors.description}</p>
             )}
           </div>
 
           {/* Date */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Event Date*
-            </label>
+            <label className="font-medium">Date*</label>
             <input
-              type="datetime-local"
+              type="date"
               name="date"
               value={formData.date}
               onChange={handleInputChange}
-              className={`w-full px-4 py-2 border rounded-md ${
+              className={`w-full px-4 py-2 border rounded ${
                 errors.date ? "border-red-500" : "border-gray-300"
               }`}
             />
-            {errors.date && (
-              <p className="text-sm text-red-600">{errors.date}</p>
-            )}
+            {errors.date && <p className="text-red-600">{errors.date}</p>}
           </div>
 
           {/* Location */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Location*
-            </label>
+            <label className="font-medium">Location*</label>
             <input
               type="text"
               name="location"
               value={formData.location}
               onChange={handleInputChange}
-              className={`w-full px-4 py-2 border rounded-md ${
+              className={`w-full px-4 py-2 border rounded ${
                 errors.location ? "border-red-500" : "border-gray-300"
               }`}
             />
             {errors.location && (
-              <p className="text-sm text-red-600">{errors.location}</p>
+              <p className="text-red-600">{errors.location}</p>
+            )}
+          </div>
+
+          {/* Poster */}
+          <div>
+            <label className="font-medium">Event Poster*</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handlePosterChange}
+              className={`w-full px-4 py-2 border rounded ${
+                errors.poster ? "border-red-500" : "border-gray-300"
+              }`}
+            />
+            {errors.poster && (
+              <p className="text-red-600">{errors.poster}</p>
+            )}
+            {posterPreview && (
+              <img
+                src={posterPreview}
+                alt="Preview"
+                className="h-48 w-auto rounded mt-4 shadow"
+              />
             )}
           </div>
 
           {/* Ticket Types */}
-          <div className="mt-4">
-            <h3 className="text-lg font-semibold mb-3">Ticket Types</h3>
+          <div className="border-t pt-6">
+            <h2 className="text-lg font-semibold mb-4">Ticket Types</h2>
+
             {ticketTypes.map((ticket, index) => (
-              <div key={ticket.id} className="flex gap-4 mb-3 items-center">
+              <div key={ticket.id} className="flex gap-4 mb-4 items-center">
                 <input
                   type="text"
-                  placeholder="Ticket Name (e.g., VIP)"
+                  placeholder="Ticket Name"
                   value={ticket.name}
                   onChange={(e) =>
                     handleTicketChange(index, "name", e.target.value)
                   }
-                  className={`flex-1 px-4 py-2 border rounded-md ${
+                  className={`flex-grow px-4 py-2 border rounded ${
                     errors[`ticket-${index}-name`]
                       ? "border-red-500"
                       : "border-gray-300"
                   }`}
                 />
+
                 <input
                   type="number"
+                  min="0"
                   placeholder="Price"
                   value={ticket.price}
                   onChange={(e) =>
                     handleTicketChange(index, "price", e.target.value)
                   }
-                  className={`w-32 px-4 py-2 border rounded-md ${
+                  className={`w-32 px-4 py-2 border rounded ${
                     errors[`ticket-${index}-price`]
                       ? "border-red-500"
                       : "border-gray-300"
                   }`}
                 />
+
                 <button
                   type="button"
-                  onClick={() => removeTicketType(index)}
                   disabled={ticketTypes.length === 1}
-                  className="p-2 text-gray-500 hover:text-red-600 disabled:opacity-50 transition"
-                  title="Remove ticket type"
+                  onClick={() => removeTicketType(index)}
+                  className="text-red-500 hover:text-red-700"
                 >
                   <TrashIcon className="h-5 w-5" />
                 </button>
               </div>
             ))}
+
             <button
               type="button"
               onClick={addTicketType}
-              className="mt-2 text-indigo-600 hover:text-indigo-800 flex items-center"
+              className="text-indigo-600 hover:text-indigo-800 flex items-center mt-2"
             >
-              <PlusIcon className="h-4 w-4 mr-1" /> Add another ticket type
+              <PlusIcon className="h-4 w-4 mr-1" /> Add Ticket Type
             </button>
           </div>
 
           {/* Submit */}
-          <div className="mt-6">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:bg-indigo-400 transition"
-            >
-              {isSubmitting
-                ? "Saving Event..."
-                : isEditMode
-                ? "Update Event"
-                : "Create Event"}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full bg-indigo-600 text-white font-bold py-2 rounded hover:bg-indigo-700 transition disabled:opacity-50"
+          >
+            {isSubmitting
+              ? "Saving..."
+              : isEditMode
+              ? "Update Event"
+              : "Create Event"}
+          </button>
         </form>
       </div>
     </div>
