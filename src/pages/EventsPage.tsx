@@ -25,23 +25,24 @@ const EventsPage = () => {
   });
   const [events, setEvents] = useState<any[]>([]);
 
-  const fetchEvents = async () => {
-    try {
-      // Use axiosInstance; baseURL already includes /api
-      const res = await axiosInstance.get("/events/");
-      const data = res.data;
-      const updatedEvents = data.map((event: any) => ({
-        ...event,
-        total_likes: event.total_likes || 0,
-        liked_by_user:
-          event.liked_by_user ||
-          localStorage.getItem(`anon_liked_${event.event_id}`) === "true",
-      }));
-      setEvents(updatedEvents);
-    } catch (err) {
-      console.error("Failed to fetch events:", err);
-    }
-  };
+ const fetchEvents = async () => {
+  try {
+    // baseURL already includes /api, so just call /events/
+    const res = await axiosInstance.get("/events/");
+    const data = res.data;
+    const updatedEvents = data.map((event: any) => ({
+      ...event,
+      total_likes: event.total_likes || 0,
+      liked_by_user:
+        event.liked_by_user ||
+        localStorage.getItem(`anon_liked_${event.event_id}`) === "true",
+    }));
+    setEvents(updatedEvents);
+  } catch (err) {
+    console.error("Failed to fetch events:", err);
+  }
+};
+
 
   useEffect(() => {
     fetchEvents();
