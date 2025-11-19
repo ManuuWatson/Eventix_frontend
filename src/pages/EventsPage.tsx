@@ -55,12 +55,13 @@ const EventsPage = () => {
           localStorage.getItem(`anon_liked_${event.event_id}`) === "true",
       }));
 
+      // Update local storage cache
       localStorage.setItem("cached_events", JSON.stringify(formatted));
       return formatted;
     },
-    initialData: cachedEvents,
+    initialData: cachedEvents.length > 0 ? cachedEvents : undefined, // Only use cache if not empty
     staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true, // Always fetch fresh data
   };
 
   const { data: events = [], isLoading, error }: UseQueryResult<EventType[], Error> =
@@ -167,7 +168,9 @@ const EventsPage = () => {
         ) : error ? (
           <div className="text-center py-10 text-red-600">Failed to load events.</div>
         ) : filteredEvents.length === 0 ? (
-          <div className="text-center py-10">No events found.</div>
+          <div className="text-center py-10">
+            {isLoading ? "Loading events..." : "No events found."}
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredEvents.map((event: EventType) => (
