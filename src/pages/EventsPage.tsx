@@ -55,13 +55,12 @@ const EventsPage = () => {
           localStorage.getItem(`anon_liked_${event.event_id}`) === "true",
       }));
 
-      // Update local storage cache
       localStorage.setItem("cached_events", JSON.stringify(formatted));
       return formatted;
     },
-    initialData: cachedEvents.length > 0 ? cachedEvents : undefined, // Only use cache if not empty
+    initialData: cachedEvents.length > 0 ? cachedEvents : undefined,
     staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true, // Always fetch fresh data
+    refetchOnWindowFocus: true,
   };
 
   const { data: events = [], isLoading, error }: UseQueryResult<EventType[], Error> =
@@ -172,7 +171,7 @@ const EventsPage = () => {
             {isLoading ? "Loading events..." : "No events found."}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {filteredEvents.map((event: EventType) => (
               <EventCard
                 key={event.event_id}
