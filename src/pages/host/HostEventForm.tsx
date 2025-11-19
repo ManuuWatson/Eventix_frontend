@@ -6,8 +6,9 @@ import axiosInstance from "../../api/axiosInstance";
 
 type TicketType = {
   id: string;
-  name: string;
-  price: number;
+  ticket_name: string;
+  ticket_price: number;
+  ticket_quantity?: number; // optional
 };
 
 const HostEventForm: React.FC = () => {
@@ -26,7 +27,7 @@ const HostEventForm: React.FC = () => {
   });
 
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([
-    { id: `new-${Date.now()}`, name: "Standard", price: 0 },
+    { id: `new-${Date.now()}`, ticket_name: "Standard", ticket_price: 0, ticket_quantity: 0 },
   ]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -34,7 +35,7 @@ const HostEventForm: React.FC = () => {
   const [posterPreview, setPosterPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch existing event when editing
+  // Fetch existing event for editing
   useEffect(() => {
     if (!isEditMode) return;
 
@@ -51,14 +52,15 @@ const HostEventForm: React.FC = () => {
           poster: null,
         });
 
-        setPosterPreview(event.poster || null);
+        setPosterPreview(event.poster_url || null);
 
-        if (event.ticket_types) {
+        if (event.ticket_types?.length > 0) {
           setTicketTypes(
-            event.ticket_types.map((t: any, i: number) => ({
-              id: `existing-${i}`,
-              name: t.name,
-              price: t.price,
+            event.ticket_types.map((t: any, index: number) => ({
+              id: `existing-${index}`,
+              ticket_name: t.ticket_name,
+              ticket_price: t.ticket_price,
+              ticket_quantity: t.ticket_quantity ?? 0, // default 0
             }))
           );
         }
@@ -71,6 +73,7 @@ const HostEventForm: React.FC = () => {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
@@ -87,10 +90,16 @@ const HostEventForm: React.FC = () => {
     value: string | number
   ) => {
     setTicketTypes((prev) =>
-      prev.map((t, i) =>
+      prev.map((ticket, i) =>
         i === index
-          ? { ...t, [field]: field === "price" ? Number(value) : value }
-          : t
+          ? {
+              ...ticket,
+              [field]:
+                field === "ticket_price" || field === "ticket_quantity"
+                  ? Number(value)
+                  : (value as string),
+            }
+          : ticket
       )
     );
   };
@@ -98,7 +107,12 @@ const HostEventForm: React.FC = () => {
   const addTicketType = () =>
     setTicketTypes((prev) => [
       ...prev,
-      { id: `new-${Date.now()}`, name: "", price: 0 },
+      {
+        id: `new-${Date.now()}`,
+        ticket_name: "",
+        ticket_price: 0,
+        ticket_quantity: 0,
+      },
     ]);
 
   const removeTicketType = (index: number) =>
@@ -118,11 +132,15 @@ const HostEventForm: React.FC = () => {
     if (!formData.poster && !isEditMode)
       newErrors.poster = "Poster is required";
 
-    ticketTypes.forEach((t, i) => {
-      if (!t.name.trim())
+    ticketTypes.forEach((ticket, i) => {
+      if (!ticket.ticket_name.trim())
         newErrors[`ticket-${i}-name`] = "Ticket name is required";
-      if (t.price < 0)
+
+      if (ticket.ticket_price < 0)
         newErrors[`ticket-${i}-price`] = "Price must be >= 0";
+
+      if (ticket.ticket_quantity !== undefined && ticket.ticket_quantity < 0)
+        newErrors[`ticket-${i}-quantity`] = "Quantity must be >= 0";
     });
 
     setErrors(newErrors);
@@ -147,14 +165,19 @@ const HostEventForm: React.FC = () => {
       formPayload.append("description", formData.description);
       formPayload.append("date", formData.date);
       formPayload.append("location", formData.location);
-      formPayload.append("host_name", user.full_name || "Unknown");
+      formPayload.append("host_name", user.full_name);
 
       if (formData.poster) {
         formPayload.append("poster", formData.poster);
       }
 
-      // ✅ Ticket types as JSON string
-      formPayload.append("ticket_types", JSON.stringify(ticketTypes));
+      const backendTickets = ticketTypes.map((t) => ({
+        ticket_name: t.ticket_name,
+        ticket_price: t.ticket_price,
+        ticket_quantity: t.ticket_quantity ?? 0, // optional default
+      }));
+
+      formPayload.append("ticket_types", JSON.stringify(backendTickets));
 
       const endpoint = isEditMode ? `/events/${eventId}/` : `/events/`;
 
@@ -166,8 +189,9 @@ const HostEventForm: React.FC = () => {
         setMessage(
           isEditMode
             ? "✅ Event updated successfully!"
-            : "✅ Event created successfully! Awaiting admin approval."
+            : "✅ Event created successfully! Awaiting approval."
         );
+
         setTimeout(
           () => navigate("/host/dashboard/", { state: { refresh: true } }),
           900
@@ -204,7 +228,7 @@ const HostEventForm: React.FC = () => {
 
       <div className="bg-white p-6 rounded-lg shadow-md">
         <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6">
-          {/* Event Name */}
+          {/* Name */}
           <div>
             <label className="font-medium">Event Name*</label>
             <input
@@ -279,9 +303,8 @@ const HostEventForm: React.FC = () => {
                 errors.poster ? "border-red-500" : "border-gray-300"
               }`}
             />
-            {errors.poster && (
-              <p className="text-red-600">{errors.poster}</p>
-            )}
+            {errors.poster && <p className="text-red-600">{errors.poster}</p>}
+
             {posterPreview && (
               <img
                 src={posterPreview}
@@ -300,9 +323,9 @@ const HostEventForm: React.FC = () => {
                 <input
                   type="text"
                   placeholder="Ticket Name"
-                  value={ticket.name}
+                  value={ticket.ticket_name}
                   onChange={(e) =>
-                    handleTicketChange(index, "name", e.target.value)
+                    handleTicketChange(index, "ticket_name", e.target.value)
                   }
                   className={`flex-grow px-4 py-2 border rounded ${
                     errors[`ticket-${index}-name`]
@@ -315,12 +338,27 @@ const HostEventForm: React.FC = () => {
                   type="number"
                   min="0"
                   placeholder="Price"
-                  value={ticket.price}
+                  value={ticket.ticket_price}
                   onChange={(e) =>
-                    handleTicketChange(index, "price", e.target.value)
+                    handleTicketChange(index, "ticket_price", e.target.value)
                   }
-                  className={`w-32 px-4 py-2 border rounded ${
+                  className={`w-24 px-4 py-2 border rounded ${
                     errors[`ticket-${index}-price`]
+                      ? "border-red-500"
+                      : "border-gray-300"
+                  }`}
+                />
+
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="Quantity (optional)"
+                  value={ticket.ticket_quantity ?? ""}
+                  onChange={(e) =>
+                    handleTicketChange(index, "ticket_quantity", e.target.value)
+                  }
+                  className={`w-24 px-4 py-2 border rounded ${
+                    errors[`ticket-${index}-quantity`]
                       ? "border-red-500"
                       : "border-gray-300"
                   }`}
