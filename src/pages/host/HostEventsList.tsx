@@ -55,7 +55,7 @@ const HostEventsList: React.FC = () => {
     setIsLoading(true);
     try {
       // Use centralized axiosInstance
-      const response = await axiosInstance.get("/api/events/my_events/");
+      const response = await axiosInstance.get("/events/my_events/");
       const myEvents = response.data.filter(
         (event: EventData) => event.host_id === user.id
       );
@@ -91,7 +91,7 @@ const HostEventsList: React.FC = () => {
 
   const confirmDelete = async (id: number) => {
     try {
-      await axiosInstance.delete(`/api/events/${id}/`);
+      await axiosInstance.delete(`/events/${id}/`);
       setEvents((prev) => prev.filter((e) => e.id !== id));
       setDeleteConfirmation(null);
     } catch (err) {
