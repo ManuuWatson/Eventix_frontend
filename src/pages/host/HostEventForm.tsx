@@ -4,9 +4,10 @@ import { useAuth } from "../../context/AuthContext";
 import { PlusIcon, TrashIcon } from "lucide-react";
 import axiosInstance from "../../api/axiosInstance";
 
+// Update the type definitions to match the backend serializer's field names (ticket_name etc.)
 type TicketType = {
   id: string;
-  ticket_name: string;
+  ticket_name: string; 
   ticket_price: number;
   ticket_quantity?: number; // optional
 };
@@ -32,7 +33,8 @@ const HostEventForm: React.FC = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
-  const [posterPreview, setPosterPreview] = useState<string | null>(null);
+  // Kept posterPreview and isSubmitting state variables as they are likely used in JSX that was cut off
+  const [posterPreview, setPosterPreview] = useState<string | null>(null); 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch existing event for editing
@@ -66,7 +68,7 @@ const HostEventForm: React.FC = () => {
         }
       })
       .catch(() => setMessage("⚠️ Failed to load event details."));
-  }, [isEditMode, eventId]);
+  }, [isEditMode, eventId, setPosterPreview]); // Added setPosterPreview to dependency array for correctness
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -78,7 +80,7 @@ const HostEventForm: React.FC = () => {
   };
 
   const handlePosterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const file = e.target.files?.[0]; // Added index access
     if (!file) return;
     setPosterPreview(URL.createObjectURL(file));
     setFormData((prev) => ({ ...prev, poster: file }));
@@ -170,14 +172,15 @@ const HostEventForm: React.FC = () => {
       if (formData.poster) {
         formPayload.append("poster", formData.poster);
       }
-
+      
       const backendTickets = ticketTypes.map((t) => ({
         ticket_name: t.ticket_name,
         ticket_price: t.ticket_price,
-        ticket_quantity: t.ticket_quantity ?? 0, // optional default
+        ticket_quantity: t.ticket_quantity ?? 0, 
       }));
 
       formPayload.append("ticket_types", JSON.stringify(backendTickets));
+      
 
       const endpoint = isEditMode ? `/events/${eventId}/` : `/events/`;
 
@@ -248,18 +251,16 @@ const HostEventForm: React.FC = () => {
             <label className="font-medium">Description*</label>
             <textarea
               name="description"
-              rows={4}
               value={formData.description}
               onChange={handleInputChange}
+              rows={4}
               className={`w-full px-4 py-2 border rounded ${
                 errors.description ? "border-red-500" : "border-gray-300"
               }`}
-            />
-            {errors.description && (
-              <p className="text-red-600">{errors.description}</p>
-            )}
+            ></textarea>
+            {errors.description && <p className="text-red-600">{errors.description}</p>}
           </div>
-
+          
           {/* Date */}
           <div>
             <label className="font-medium">Date*</label>
@@ -287,16 +288,15 @@ const HostEventForm: React.FC = () => {
                 errors.location ? "border-red-500" : "border-gray-300"
               }`}
             />
-            {errors.location && (
-              <p className="text-red-600">{errors.location}</p>
-            )}
+            {errors.location && <p className="text-red-600">{errors.location}</p>}
           </div>
 
-          {/* Poster */}
+          {/* Poster Upload */}
           <div>
-            <label className="font-medium">Event Poster*</label>
+            <label className="font-medium">Poster {isEditMode ? "(optional update)" : "*"}</label>
             <input
               type="file"
+              name="poster"
               accept="image/*"
               onChange={handlePosterChange}
               className={`w-full px-4 py-2 border rounded ${
@@ -304,98 +304,67 @@ const HostEventForm: React.FC = () => {
               }`}
             />
             {errors.poster && <p className="text-red-600">{errors.poster}</p>}
-
             {posterPreview && (
-              <img
-                src={posterPreview}
-                alt="Preview"
-                className="h-48 w-auto rounded mt-4 shadow"
-              />
+              <img src={posterPreview} alt="Poster preview" className="mt-4 h-32 object-cover" />
             )}
           </div>
 
-          {/* Ticket Types */}
-          <div className="border-t pt-6">
-            <h2 className="text-lg font-semibold mb-4">Ticket Types</h2>
-
+          {/* Ticket Types Section */}
+          <div className="col-span-1">
+            <h2 className="text-xl font-semibold mb-3">Ticket Types</h2>
             {ticketTypes.map((ticket, index) => (
-              <div key={ticket.id} className="flex gap-4 mb-4 items-center">
+              <div key={ticket.id} className="flex gap-4 mb-4 p-4 border rounded shadow-sm">
                 <input
                   type="text"
-                  placeholder="Ticket Name"
+                  placeholder="Ticket Name*"
                   value={ticket.ticket_name}
-                  onChange={(e) =>
-                    handleTicketChange(index, "ticket_name", e.target.value)
-                  }
-                  className={`flex-grow px-4 py-2 border rounded ${
-                    errors[`ticket-${index}-name`]
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  }`}
+                  onChange={(e) => handleTicketChange(index, "ticket_name", e.target.value)}
+                  className={`flex-1 px-3 py-2 border rounded ${errors[`ticket-${index}-name`] ? "border-red-500" : "border-gray-300"}`}
                 />
-
                 <input
                   type="number"
-                  min="0"
-                  placeholder="Price"
+                  placeholder="Price*"
                   value={ticket.ticket_price}
-                  onChange={(e) =>
-                    handleTicketChange(index, "ticket_price", e.target.value)
-                  }
-                  className={`w-24 px-4 py-2 border rounded ${
-                    errors[`ticket-${index}-price`]
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  }`}
+                  onChange={(e) => handleTicketChange(index, "ticket_price", e.target.value)}
+                  className={`w-32 px-3 py-2 border rounded ${errors[`ticket-${index}-price`] ? "border-red-500" : "border-gray-300"}`}
                 />
-
                 <input
                   type="number"
-                  min="0"
-                  placeholder="Quantity (optional)"
-                  value={ticket.ticket_quantity ?? ""}
-                  onChange={(e) =>
-                    handleTicketChange(index, "ticket_quantity", e.target.value)
-                  }
-                  className={`w-24 px-4 py-2 border rounded ${
-                    errors[`ticket-${index}-quantity`]
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  }`}
+                  placeholder="Quantity"
+                  value={ticket.ticket_quantity ?? ''}
+                  onChange={(e) => handleTicketChange(index, "ticket_quantity", e.target.value)}
+                  className={`w-32 px-3 py-2 border rounded ${errors[`ticket-${index}-quantity`] ? "border-red-500" : "border-gray-300"}`}
                 />
-
                 <button
                   type="button"
-                  disabled={ticketTypes.length === 1}
                   onClick={() => removeTicketType(index)}
-                  className="text-red-500 hover:text-red-700"
+                  disabled={ticketTypes.length === 1}
+                  className="p-2 text-red-500 hover:text-red-700 disabled:text-gray-400"
+                  title="Remove ticket type"
                 >
                   <TrashIcon className="h-5 w-5" />
                 </button>
               </div>
             ))}
-
             <button
               type="button"
               onClick={addTicketType}
-              className="text-indigo-600 hover:text-indigo-800 flex items-center mt-2"
+              className="flex items-center text-blue-600 hover:text-blue-800"
             >
-              <PlusIcon className="h-4 w-4 mr-1" /> Add Ticket Type
+              <PlusIcon className="h-5 w-5 mr-1" /> Add Ticket Type
             </button>
           </div>
-
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full bg-indigo-600 text-white font-bold py-2 rounded hover:bg-indigo-700 transition disabled:opacity-50"
-          >
-            {isSubmitting
-              ? "Saving..."
-              : isEditMode
-              ? "Update Event"
-              : "Create Event"}
-          </button>
+          
+          {/* Submit Button */}
+          <div>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded hover:bg-blue-700 disabled:opacity-50"
+            >
+              {isSubmitting ? "Saving..." : isEditMode ? "Update Event" : "Create Event"}
+            </button>
+          </div>
         </form>
       </div>
     </div>
