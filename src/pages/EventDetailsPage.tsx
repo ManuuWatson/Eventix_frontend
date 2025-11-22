@@ -5,7 +5,7 @@ import {
   CalendarIcon, 
   MapPinIcon, 
   UserIcon
-} from 'lucide-react';  // Removed unused icons
+} from 'lucide-react';
 
 const EventDetailsPage = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -19,14 +19,21 @@ const EventDetailsPage = () => {
     if (getEvent && eventId) {
       const foundEvent = getEvent(eventId);
 
-      console.log("🔍 DEBUG: Event found:", foundEvent);
       if (foundEvent) {
-        console.log("🎫 Ticket Types:", foundEvent.ticketTypes);
+        // Map ticket_types from backend to frontend-friendly structure
+        const tickets = (foundEvent.ticketTypes || []).map((t: any) => ({
+          id: t.id,
+          name: t.ticket_name,
+          price: t.ticket_price,
+          quantity: t.ticket_quantity,
+          description: "", // optional: add description if available
+        }));
+
+        setEvent({ ...foundEvent, ticketTypes: tickets });
+        console.log("🎫 Mapped Tickets:", tickets);
       } else {
         console.log("❌ Event not found in context");
       }
-
-      setEvent(foundEvent);
     }
   }, [getEvent, eventId]);
 
@@ -69,8 +76,8 @@ const EventDetailsPage = () => {
 
         {/* HEADER */}
         <div className="relative h-80 bg-gray-900">
-          {event.posterUrl && (
-            <img src={event.posterUrl} alt={event.name} className="w-full h-full object-cover opacity-70" />
+          {event.poster_url && (
+            <img src={event.poster_url} alt={event.name} className="w-full h-full object-cover opacity-70" />
           )}
           <div className="absolute bottom-0 left-0 p-6 text-white">
             <h1 className="text-4xl font-bold mb-2">{event.name}</h1>
@@ -113,14 +120,14 @@ const EventDetailsPage = () => {
                 </div>
               </div>
 
-              {event.hostName && (
+              {event.host_name && (
                 <div className="flex items-start">
                   <div className="bg-indigo-100 p-3 rounded-full mr-4">
                     <UserIcon className="h-6 w-6 text-indigo-600" />
                   </div>
                   <div>
                     <h3 className="font-medium">Organizer</h3>
-                    <p className="text-gray-600">{event.hostName}</p>
+                    <p className="text-gray-600">{event.host_name}</p>
                   </div>
                 </div>
               )}

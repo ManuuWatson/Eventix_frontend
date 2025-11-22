@@ -4,12 +4,11 @@ import { useAuth } from "../../context/AuthContext";
 import { PlusIcon, TrashIcon } from "lucide-react";
 import axiosInstance from "../../api/axiosInstance";
 
-// Update the type definitions to match the backend serializer's field names (ticket_name etc.)
 type TicketType = {
   id: string;
-  ticket_name: string; 
+  ticket_name: string;
   ticket_price: number;
-  ticket_quantity?: number; // optional
+  ticket_quantity?: number;
 };
 
 const HostEventForm: React.FC = () => {
@@ -33,11 +32,10 @@ const HostEventForm: React.FC = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
-  // Kept posterPreview and isSubmitting state variables as they are likely used in JSX that was cut off
-  const [posterPreview, setPosterPreview] = useState<string | null>(null); 
+  const [posterPreview, setPosterPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch existing event for editing
+  // Load event if editing
   useEffect(() => {
     if (!isEditMode) return;
 
@@ -61,26 +59,25 @@ const HostEventForm: React.FC = () => {
             event.ticket_types.map((t: any, index: number) => ({
               id: `existing-${index}`,
               ticket_name: t.ticket_name,
-              ticket_price: t.ticket_price,
-              ticket_quantity: t.ticket_quantity ?? 0, // default 0
+              ticket_price: Number(t.ticket_price),
+              ticket_quantity: t.ticket_quantity ?? 0,
             }))
           );
         }
       })
       .catch(() => setMessage("⚠️ Failed to load event details."));
-  }, [isEditMode, eventId, setPosterPreview]); // Added setPosterPreview to dependency array for correctness
+  }, [isEditMode, eventId]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const handlePosterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; // Added index access
+    const file = e.target.files?.[0];
     if (!file) return;
     setPosterPreview(URL.createObjectURL(file));
     setFormData((prev) => ({ ...prev, poster: file }));
@@ -172,15 +169,15 @@ const HostEventForm: React.FC = () => {
       if (formData.poster) {
         formPayload.append("poster", formData.poster);
       }
-      
+
+      // 🔥 EXACT FORMAT expected by backend
       const backendTickets = ticketTypes.map((t) => ({
         ticket_name: t.ticket_name,
-        ticket_price: t.ticket_price,
-        ticket_quantity: t.ticket_quantity ?? 0, 
+        ticket_price: String(t.ticket_price),   // Django decimal-safe
+        ticket_quantity: Number(t.ticket_quantity) || 0,
       }));
 
       formPayload.append("ticket_types", JSON.stringify(backendTickets));
-      
 
       const endpoint = isEditMode ? `/events/${eventId}/` : `/events/`;
 
@@ -258,9 +255,11 @@ const HostEventForm: React.FC = () => {
                 errors.description ? "border-red-500" : "border-gray-300"
               }`}
             ></textarea>
-            {errors.description && <p className="text-red-600">{errors.description}</p>}
+            {errors.description && (
+              <p className="text-red-600">{errors.description}</p>
+            )}
           </div>
-          
+
           {/* Date */}
           <div>
             <label className="font-medium">Date*</label>
@@ -291,12 +290,13 @@ const HostEventForm: React.FC = () => {
             {errors.location && <p className="text-red-600">{errors.location}</p>}
           </div>
 
-          {/* Poster Upload */}
+          {/* Poster */}
           <div>
-            <label className="font-medium">Poster {isEditMode ? "(optional update)" : "*"}</label>
+            <label className="font-medium">
+              Poster {isEditMode ? "(optional update)" : "*"}
+            </label>
             <input
               type="file"
-              name="poster"
               accept="image/*"
               onChange={handlePosterChange}
               className={`w-full px-4 py-2 border rounded ${
@@ -305,47 +305,75 @@ const HostEventForm: React.FC = () => {
             />
             {errors.poster && <p className="text-red-600">{errors.poster}</p>}
             {posterPreview && (
-              <img src={posterPreview} alt="Poster preview" className="mt-4 h-32 object-cover" />
+              <img
+                src={posterPreview}
+                alt="Poster preview"
+                className="mt-4 h-32 object-cover"
+              />
             )}
           </div>
 
-          {/* Ticket Types Section */}
+          {/* Ticket Types */}
           <div className="col-span-1">
             <h2 className="text-xl font-semibold mb-3">Ticket Types</h2>
             {ticketTypes.map((ticket, index) => (
-              <div key={ticket.id} className="flex gap-4 mb-4 p-4 border rounded shadow-sm">
+              <div
+                key={ticket.id}
+                className="flex gap-4 mb-4 p-4 border rounded shadow-sm"
+              >
                 <input
                   type="text"
                   placeholder="Ticket Name*"
                   value={ticket.ticket_name}
-                  onChange={(e) => handleTicketChange(index, "ticket_name", e.target.value)}
-                  className={`flex-1 px-3 py-2 border rounded ${errors[`ticket-${index}-name`] ? "border-red-500" : "border-gray-300"}`}
+                  onChange={(e) =>
+                    handleTicketChange(index, "ticket_name", e.target.value)
+                  }
+                  className={`flex-1 px-3 py-2 border rounded ${
+                    errors[`ticket-${index}-name`]
+                      ? "border-red-500"
+                      : "border-gray-300"
+                  }`}
                 />
+
                 <input
                   type="number"
                   placeholder="Price*"
                   value={ticket.ticket_price}
-                  onChange={(e) => handleTicketChange(index, "ticket_price", e.target.value)}
-                  className={`w-32 px-3 py-2 border rounded ${errors[`ticket-${index}-price`] ? "border-red-500" : "border-gray-300"}`}
+                  onChange={(e) =>
+                    handleTicketChange(index, "ticket_price", e.target.value)
+                  }
+                  className={`w-32 px-3 py-2 border rounded ${
+                    errors[`ticket-${index}-price`]
+                      ? "border-red-500"
+                      : "border-gray-300"
+                  }`}
                 />
+
                 <input
                   type="number"
                   placeholder="Quantity"
-                  value={ticket.ticket_quantity ?? ''}
-                  onChange={(e) => handleTicketChange(index, "ticket_quantity", e.target.value)}
-                  className={`w-32 px-3 py-2 border rounded ${errors[`ticket-${index}-quantity`] ? "border-red-500" : "border-gray-300"}`}
+                  value={ticket.ticket_quantity ?? ""}
+                  onChange={(e) =>
+                    handleTicketChange(index, "ticket_quantity", e.target.value)
+                  }
+                  className={`w-32 px-3 py-2 border rounded ${
+                    errors[`ticket-${index}-quantity`]
+                      ? "border-red-500"
+                      : "border-gray-300"
+                  }`}
                 />
+
                 <button
                   type="button"
                   onClick={() => removeTicketType(index)}
                   disabled={ticketTypes.length === 1}
                   className="p-2 text-red-500 hover:text-red-700 disabled:text-gray-400"
-                  title="Remove ticket type"
                 >
                   <TrashIcon className="h-5 w-5" />
                 </button>
               </div>
             ))}
+
             <button
               type="button"
               onClick={addTicketType}
@@ -354,15 +382,19 @@ const HostEventForm: React.FC = () => {
               <PlusIcon className="h-5 w-5 mr-1" /> Add Ticket Type
             </button>
           </div>
-          
-          {/* Submit Button */}
+
+          {/* Submit */}
           <div>
             <button
               type="submit"
               disabled={isSubmitting}
               className="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded hover:bg-blue-700 disabled:opacity-50"
             >
-              {isSubmitting ? "Saving..." : isEditMode ? "Update Event" : "Create Event"}
+              {isSubmitting
+                ? "Saving..."
+                : isEditMode
+                ? "Update Event"
+                : "Create Event"}
             </button>
           </div>
         </form>
