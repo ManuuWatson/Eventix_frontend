@@ -1,41 +1,39 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEvents } from '../context/EventContext';
-import { 
-  CalendarIcon, 
-  MapPinIcon, 
-  UserIcon
+import {
+  CalendarIcon,
+  MapPinIcon,
+  UserIcon,
+  TicketIcon
 } from 'lucide-react';
+import LoadingSpinner from '../components/layout/LoadingSpinner';
 
 const EventDetailsPage = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
-  const { getEvent } = useEvents();
-  
-  const [event, setEvent] = useState<any>(null);
+  const { events, getEvent } = useEvents(); // Use events directly for reactivity
+
   const [selectedTicket, setSelectedTicket] = useState<number | null>(null);
 
+  // Get event from context
+  // We use the function but also depend on 'events' so it updates when events are fetched
+  const event = getEvent(eventId || "");
+
+  // If event is not found immediately, it might be loading or invalid.
+  // We can check if events are empty to show loading.
+  const isLoading = events.length === 0;
+
   useEffect(() => {
-    if (getEvent && eventId) {
-      const foundEvent = getEvent(eventId);
-
-      if (foundEvent) {
-        // Map ticket_types from backend to frontend-friendly structure
-        const tickets = (foundEvent.ticketTypes || []).map((t: any) => ({
-          id: t.id,
-          name: t.ticket_name,
-          price: t.ticket_price,
-          quantity: t.ticket_quantity,
-          description: "", // optional: add description if available
-        }));
-
-        setEvent({ ...foundEvent, ticketTypes: tickets });
-        console.log("🎫 Mapped Tickets:", tickets);
-      } else {
-        console.log("❌ Event not found in context");
-      }
+    if (event) {
+      console.log("🎫 Event loaded:", event.name);
+      console.log("🎫 Ticket types:", event.ticket_types);
     }
-  }, [getEvent, eventId]);
+  }, [event]);
+
+  if (isLoading) {
+    return <LoadingSpinner text="Loading event details..." />;
+  }
 
   if (!event) {
     return (
@@ -76,8 +74,12 @@ const EventDetailsPage = () => {
 
         {/* HEADER */}
         <div className="relative h-80 bg-gray-900">
-          {event.poster_url && (
-            <img src={event.poster_url} alt={event.name} className="w-full h-full object-cover opacity-70" />
+          {event.posterUrl ? (
+            <img src={event.posterUrl} alt={event.name} className="w-full h-full object-cover opacity-70" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-500">
+              <span className="text-lg">No Poster Available</span>
+            </div>
           )}
           <div className="absolute bottom-0 left-0 p-6 text-white">
             <h1 className="text-4xl font-bold mb-2">{event.name}</h1>
@@ -94,7 +96,7 @@ const EventDetailsPage = () => {
           {/* LEFT SIDE */}
           <div className="lg:col-span-2">
             <h2 className="text-2xl font-semibold mb-4">About This Event</h2>
-            <p className="text-gray-700 whitespace-pre-line">{event.description}</p>
+            <p className="text-gray-700 whitespace-pre-line leading-relaxed">{event.description}</p>
 
             <h2 className="text-2xl font-semibold mt-8 mb-4">Event Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -137,53 +139,47 @@ const EventDetailsPage = () => {
 
           {/* RIGHT SIDE: TICKETS */}
           <div className="lg:col-span-1">
-            <div className="bg-gray-50 p-6 rounded-lg sticky top-6">
-              <h2 className="text-2xl font-semibold mb-4">Get Tickets</h2>
+            <div className="bg-gray-50 p-6 rounded-lg sticky top-6 border border-gray-200">
+              <div className="flex items-center mb-4">
+                <TicketIcon className="h-6 w-6 text-indigo-600 mr-2" />
+                <h2 className="text-2xl font-semibold">Get Tickets</h2>
+              </div>
 
-              {/* TICKET TYPES */}
               <div className="space-y-4 mb-6">
-                {event.ticketTypes && event.ticketTypes.length > 0 ? (
-                  event.ticketTypes.map((ticket: any) => (
+                {event.ticket_types && event.ticket_types.length > 0 ? (
+                  event.ticket_types.map((ticket: any) => (
                     <div
                       key={ticket.id}
-                      className={`border rounded-lg p-4 cursor-pointer transition-colors ${
-                        selectedTicket === ticket.id
-                          ? "border-indigo-600 bg-indigo-50"
-                          : "border-gray-200"
-                      }`}
+                      className={`border rounded-lg p-4 cursor-pointer transition-all duration-200 ${selectedTicket === ticket.id
+                          ? "border-indigo-600 bg-indigo-50 shadow-sm ring-1 ring-indigo-600"
+                          : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
+                        }`}
                       onClick={() => setSelectedTicket(ticket.id)}
                     >
                       <div className="flex justify-between items-center mb-2">
-                        <h3 className="font-medium">{ticket.name}</h3>
-                        <span className="text-indigo-600 font-bold">
-                          KES {ticket.price}
+                        <h3 className="font-medium text-gray-900">{ticket.ticket_name}</h3>
+                        <span className="text-indigo-600 font-bold text-lg">
+                          KES {ticket.ticket_price}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600">{ticket.description}</p>
+
+                      <p className="text-sm text-gray-600">
+                        {ticket.ticket_quantity !== undefined
+                          ? `Available: ${ticket.ticket_quantity}`
+                          : "Available"}
+                      </p>
                     </div>
                   ))
                 ) : (
-                  <p className="text-gray-500">No tickets available for this event.</p>
+                  <div className="text-center py-8 bg-white rounded-lg border border-dashed border-gray-300">
+                    <p className="text-gray-500">No tickets available for this event.</p>
+                  </div>
                 )}
               </div>
 
-              {/* PAYMENT METHODS */}
-              {event.paymentMethods?.length > 0 && (
-                <>
-                  <h3 className="font-medium mb-2">Payment Methods</h3>
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {event.paymentMethods.map((method: string) => (
-                      <div key={method} className="bg-gray-200 px-3 py-1 rounded-full text-sm">
-                        {method}
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-
-              {/* CHECKOUT BTN */}
+              {/* CHECKOUT */}
               <button
-                className="w-full bg-indigo-600 text-white py-3 rounded-md font-medium hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="w-full bg-indigo-600 text-white py-3 rounded-md font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors"
                 disabled={!selectedTicket}
                 onClick={handleProceedToCheckout}
               >

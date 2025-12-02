@@ -1,12 +1,12 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import axios from "axios";
 
+/* ✅ Use EXACT backend structure */
 export interface TicketType {
-  id: number;
-  name: string;
-  price: number;
-  quantity: number;
-  description?: string;
+  id?: number;
+  ticket_name: string;
+  ticket_price: number;
+  ticket_quantity?: number; // optional
 }
 
 export interface EventData {
@@ -18,10 +18,15 @@ export interface EventData {
   date: string;
   location: string;
   category?: string;
-  paymentMethods: string[];
-  ticketTypes: TicketType[];
-  hostName?: string;
-  hostId?: number;
+
+  /* ✅ Use backend naming exactly */
+  payment_methods: string[];
+  ticket_types: TicketType[];
+
+  host_name?: string;
+  host_id?: number;
+
+  /* derived field */
   status: "Pending Approval" | "Approved" | "Rejected";
 }
 
@@ -37,7 +42,7 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [events, setEvents] = useState<EventData[]>([]);
   const [lastFetched, setLastFetched] = useState<number | null>(null);
 
-  const API_URL = "https://eventix-backend2.onrender.com/api/events/";
+  const API_URL = "http://127.0.0.1:8000/api/events/";
 
   const fetchEvents = async (force = false) => {
     const now = Date.now();
@@ -50,22 +55,24 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     try {
       console.log("🌐 Fetching events:", API_URL);
 
-      const response = await axios.get(API_URL, {
-        timeout: 15000, // 15 seconds timeout
-      });
-
+      const response = await axios.get(API_URL, { timeout: 15000 });
       const apiData = response.data;
 
       const normalizedEvents: EventData[] = apiData.map((event: any) => ({
         ...event,
+
+        /* Normalize missing fields ONLY, not renaming backend fields */
         event_id: event.event_id ?? event.id,
-        title: event.name ?? event.title ?? "Untitled Event",
         name: event.name ?? event.title ?? "Untitled Event",
+        title: event.title ?? event.name,
         posterUrl: event.poster_url ?? "",
-        paymentMethods: event.payment_methods ?? [],
-        ticketTypes: event.ticket_types ?? [],
-        hostName: event.host_name ?? "Unknown Host",
-        hostId: event.host_id,
+
+        /* ❗ backend fields kept EXACTLY */
+        payment_methods: event.payment_methods ?? [],
+        ticket_types: event.ticket_types ?? [],
+
+        host_name: event.host_name ?? "Unknown Host",
+        host_id: event.host_id,
         status: event.is_approved ? "Approved" : "Pending Approval",
       }));
 
@@ -74,16 +81,12 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
       console.log("✅ Events fetched successfully:", normalizedEvents.length);
     } catch (err: any) {
-      // Detect CORS issue
       if (err?.message?.includes("Network Error")) {
         console.error("🌐 CORS ERROR: Backend is reachable but blocked.");
-        console.error("❌ No Access-Control-Allow-Origin header found.");
       }
 
-      // Detect 502 Bad Gateway
       if (err?.response?.status === 502) {
-        console.error("❌ Backend responded with 502 Bad Gateway.");
-        console.error("💡 Render backend is probably sleeping or restarting.");
+        console.error("❌ Backend responded with 502 (Render sleeping?)");
       }
 
       console.error("❌ Full error:", err);

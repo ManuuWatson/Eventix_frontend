@@ -27,7 +27,12 @@ const HostEventForm: React.FC = () => {
   });
 
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([
-    { id: `new-${Date.now()}`, ticket_name: "Standard", ticket_price: 0, ticket_quantity: 0 },
+    {
+      id: `new-${Date.now()}`,
+      ticket_name: "Standard",
+      ticket_price: 0,
+      ticket_quantity: 0,
+    },
   ]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -35,7 +40,7 @@ const HostEventForm: React.FC = () => {
   const [posterPreview, setPosterPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load event if editing
+  // LOAD EVENT WHEN EDITING
   useEffect(() => {
     if (!isEditMode) return;
 
@@ -45,19 +50,19 @@ const HostEventForm: React.FC = () => {
         const event = res.data;
 
         setFormData({
-          name: event.name || "",
-          description: event.description || "",
-          date: event.date || "",
-          location: event.location || "",
+          name: event.name,
+          description: event.description,
+          date: event.date,
+          location: event.location,
           poster: null,
         });
 
-        setPosterPreview(event.poster_url || null);
+        setPosterPreview(event.poster_url);
 
         if (event.ticket_types?.length > 0) {
           setTicketTypes(
-            event.ticket_types.map((t: any, index: number) => ({
-              id: `existing-${index}`,
+            event.ticket_types.map((t: any, i: number) => ({
+              id: `existing-${i}`,
               ticket_name: t.ticket_name,
               ticket_price: Number(t.ticket_price),
               ticket_quantity: t.ticket_quantity ?? 0,
@@ -68,17 +73,20 @@ const HostEventForm: React.FC = () => {
       .catch(() => setMessage("⚠️ Failed to load event details."));
   }, [isEditMode, eventId]);
 
+  // INPUT HANDLERS
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const handlePosterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     setPosterPreview(URL.createObjectURL(file));
     setFormData((prev) => ({ ...prev, poster: file }));
   };
@@ -96,7 +104,7 @@ const HostEventForm: React.FC = () => {
               [field]:
                 field === "ticket_price" || field === "ticket_quantity"
                   ? Number(value)
-                  : (value as string),
+                  : String(value),
             }
           : ticket
       )
@@ -119,6 +127,7 @@ const HostEventForm: React.FC = () => {
       prev.length > 1 ? prev.filter((_, i) => i !== index) : prev
     );
 
+  // VALIDATION
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -128,17 +137,18 @@ const HostEventForm: React.FC = () => {
     if (!formData.date) newErrors.date = "Event date is required";
     if (!formData.location.trim())
       newErrors.location = "Event location is required";
+
     if (!formData.poster && !isEditMode)
       newErrors.poster = "Poster is required";
 
-    ticketTypes.forEach((ticket, i) => {
-      if (!ticket.ticket_name.trim())
+    ticketTypes.forEach((t, i) => {
+      if (!t.ticket_name.trim())
         newErrors[`ticket-${i}-name`] = "Ticket name is required";
 
-      if (ticket.ticket_price < 0)
+      if (t.ticket_price < 0)
         newErrors[`ticket-${i}-price`] = "Price must be >= 0";
 
-      if (ticket.ticket_quantity !== undefined && ticket.ticket_quantity < 0)
+      if ((t.ticket_quantity ?? 0) < 0)
         newErrors[`ticket-${i}-quantity`] = "Quantity must be >= 0";
     });
 
@@ -146,6 +156,7 @@ const HostEventForm: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // SUBMIT HANDLER
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -166,14 +177,11 @@ const HostEventForm: React.FC = () => {
       formPayload.append("location", formData.location);
       formPayload.append("host_name", user.full_name);
 
-      if (formData.poster) {
-        formPayload.append("poster", formData.poster);
-      }
+      if (formData.poster) formPayload.append("poster", formData.poster);
 
-      // 🔥 EXACT FORMAT expected by backend
       const backendTickets = ticketTypes.map((t) => ({
         ticket_name: t.ticket_name,
-        ticket_price: String(t.ticket_price),   // Django decimal-safe
+        ticket_price: String(t.ticket_price),
         ticket_quantity: Number(t.ticket_quantity) || 0,
       }));
 
@@ -181,24 +189,22 @@ const HostEventForm: React.FC = () => {
 
       const endpoint = isEditMode ? `/events/${eventId}/` : `/events/`;
 
-      const response = isEditMode
-        ? await axiosInstance.put(endpoint, formPayload)
-        : await axiosInstance.post(endpoint, formPayload);
-
-      if (response.status === 200 || response.status === 201) {
-        setMessage(
-          isEditMode
-            ? "✅ Event updated successfully!"
-            : "✅ Event created successfully! Awaiting approval."
-        );
-
-        setTimeout(
-          () => navigate("/host/dashboard/", { state: { refresh: true } }),
-          900
-        );
+      if (isEditMode) {
+        await axiosInstance.put(endpoint, formPayload);
       } else {
-        setMessage("⚠️ Something went wrong.");
+        await axiosInstance.post(endpoint, formPayload);
       }
+
+      setMessage(
+        isEditMode
+          ? "✅ Event updated successfully!"
+          : "✅ Event created successfully! Awaiting approval."
+      );
+
+      setTimeout(
+        () => navigate("/host/dashboard/", { state: { refresh: true } }),
+        900
+      );
     } catch (err: any) {
       console.error("❌ Error:", err);
       setMessage(
@@ -287,7 +293,9 @@ const HostEventForm: React.FC = () => {
                 errors.location ? "border-red-500" : "border-gray-300"
               }`}
             />
-            {errors.location && <p className="text-red-600">{errors.location}</p>}
+            {errors.location && (
+              <p className="text-red-600">{errors.location}</p>
+            )}
           </div>
 
           {/* Poster */}
@@ -316,6 +324,7 @@ const HostEventForm: React.FC = () => {
           {/* Ticket Types */}
           <div className="col-span-1">
             <h2 className="text-xl font-semibold mb-3">Ticket Types</h2>
+
             {ticketTypes.map((ticket, index) => (
               <div
                 key={ticket.id}
