@@ -38,29 +38,21 @@ const EventsPage = () => {
     location: "",
   });
 
-  // ------------------ LOCAL STORAGE CACHE ------------------ //
-  const cachedEvents: EventType[] =
-    (JSON.parse(localStorage.getItem("cached_events") || "[]") as EventType[]) || [];
-
   // ------------------ FETCH EVENTS USING REACT QUERY ------------------ //
   const queryOptions: UseQueryOptions<EventType[], Error, EventType[]> = {
     queryKey: ["events"],
     queryFn: async () => {
       const res = await axiosInstance.get("/events/");
-      const formatted: EventType[] = res.data.map((event: any) => ({
+      return res.data.map((event: any) => ({
         ...event,
         name: event.name || event.title || "Untitled Event",
         total_likes: event.total_likes || 0,
-        liked_by_user:
-          localStorage.getItem(`anon_liked_${event.event_id}`) === "true",
+        liked_by_user: false, // handle likes separately
       }));
-
-      localStorage.setItem("cached_events", JSON.stringify(formatted));
-      return formatted;
     },
-    initialData: cachedEvents.length > 0 ? cachedEvents : undefined,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0, // always consider data stale to fetch fresh
     refetchOnWindowFocus: true,
+    refetchInterval: 5000, // fetch fresh events every 5 seconds
   };
 
   const { data: events = [], isLoading, error }: UseQueryResult<EventType[], Error> =
@@ -90,7 +82,7 @@ const EventsPage = () => {
 
   // ------------------ HANDLE LIKE UPDATE ------------------ //
   const handleLikeUpdate = (event_id: string, likes_count: number) => {
-    (events || []).forEach((e: EventType) => {
+    events.forEach((e: EventType) => {
       if (e.event_id === event_id) {
         e.total_likes = likes_count;
       }
@@ -125,7 +117,7 @@ const EventsPage = () => {
   return (
     <div className="container mx-auto px-4 py-8">
 
-      {/* ================= HERO CAROUSEL ================= */}
+      {/* ================= HERO CAROUSEL ================= */} 
       <section className="relative mb-12 h-[500px] rounded-lg overflow-hidden shadow-lg">
         <div
           className="flex w-full h-full transition-transform duration-900 ease-in-out"
@@ -162,14 +154,12 @@ const EventsPage = () => {
       <section className="mt-10">
         <h2 className="text-2xl font-semibold mb-6">Upcoming Events</h2>
 
-        {isLoading && events.length === 0 ? (
+        {isLoading ? (
           <div className="text-center py-10">Loading events...</div>
         ) : error ? (
           <div className="text-center py-10 text-red-600">Failed to load events.</div>
         ) : filteredEvents.length === 0 ? (
-          <div className="text-center py-10">
-            {isLoading ? "Loading events..." : "No events found."}
-          </div>
+          <div className="text-center py-10">No events found.</div>
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {filteredEvents.map((event: EventType) => (
