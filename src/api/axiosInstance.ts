@@ -21,16 +21,17 @@ axiosInstance.interceptors.request.use(
     try {
       const token = localStorage.getItem("eventix_token");
 
+      // Ensure headers object exists
+      config.headers = config.headers || {};
+
       // Add Authorization header if token exists
       if (token) {
-        config.headers = config.headers || {};
         config.headers.Authorization = `Bearer ${token}`;
         console.log("✅ Token added to request");
       }
 
-      // Remove Content-Type for FormData requests
+      // Remove Content-Type for FormData to allow browser to set boundary
       if (config.data instanceof FormData) {
-        config.headers = config.headers || {};
         delete (config.headers as any)["Content-Type"];
         console.log("📝 Content-Type removed for FormData request");
       }
@@ -49,9 +50,7 @@ axiosInstance.interceptors.request.use(
 
 // Response interceptor for logging and error handling
 axiosInstance.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   (error) => {
     console.error(
       "🚨 Axios Response Error:",
