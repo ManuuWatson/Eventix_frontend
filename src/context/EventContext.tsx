@@ -34,7 +34,10 @@ const EventContext = createContext<EventContextType | undefined>(undefined);
 
 export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [events, setEvents] = useState<EventData[]>([]);
-  const API_URL = "http://127.0.0.1:8000/api/events/";
+
+  // ✅ Load API URL from .env (works local + deployed)
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
+  const API_URL = `${API_BASE_URL}/events/`;
 
   const fetchEvents = async () => {
     try {
@@ -65,10 +68,10 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   useEffect(() => {
-    // Initial fetch
+    // Initial load
     fetchEvents();
 
-    // Poll backend every 5 seconds for live updates
+    // 🔥 Poll every 5 seconds for instant live updates
     const interval = setInterval(() => {
       fetchEvents();
     }, 5000);
