@@ -1,12 +1,19 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import axios from "axios";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import axiosInstance from "../api/axiosInstance";
 
-/* ✅ Use EXACT backend structure */
+/* ---------- Types ---------- */
+
 export interface TicketType {
   id?: number;
   ticket_name: string;
   ticket_price: number;
-  ticket_quantity?: number; // optional
+  ticket_quantity?: number;
 }
 
 export interface EventData {
@@ -19,14 +26,12 @@ export interface EventData {
   location: string;
   category?: string;
 
-  /* ✅ Use backend naming exactly */
   payment_methods: string[];
   ticket_types: TicketType[];
 
   host_name?: string;
   host_id?: number;
 
-  /* derived field */
   status: "Pending Approval" | "Approved" | "Rejected";
 }
 
@@ -36,67 +41,90 @@ export interface EventContextType {
   getEvent: (eventId: string) => EventData | undefined;
 }
 
+/* ---------- Context ---------- */
+
 const EventContext = createContext<EventContextType | undefined>(undefined);
 
-export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const EventProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [events, setEvents] = useState<EventData[]>([]);
   const [lastFetched, setLastFetched] = useState<number | null>(null);
 
-  const API_URL = "http://127.0.0.1:8000/api/events/";
+  /**  
+   * 🚀 Uses your axiosInstance baseURL:
+   * https://eventix-backend2.onrender.com/api
+   */
+  const API_URL = "/events/";
+
+  /* ---------- Fetch Events ---------- */
 
   const fetchEvents = async (force = false) => {
     const now = Date.now();
 
+    // ⏳ Cache for 5 minutes
     if (!force && lastFetched && now - lastFetched < 5 * 60 * 1000) {
-      console.log("⏳ Using cached events (not fetching again).");
+      console.log("⏳ Using cached events");
       return;
     }
 
     try {
-      console.log("🌐 Fetching events:", API_URL);
+      console.log("🌐 Fetching events from:", API_URL);
 
-      const response = await axios.get(API_URL, { timeout: 15000 });
-      const apiData = response.data;
+      const response = await axiosInstance.get(API_URL, { timeout: 20000 });
+      const apiEvents = response.data;
 
-      const normalizedEvents: EventData[] = apiData.map((event: any) => ({
+      console.log("📥 Raw backend payload:", apiEvents);
+
+      /* Normalize backend data safely */
+      const normalized: EventData[] = apiEvents.map((event: any) => ({
         ...event,
 
-        /* Normalize missing fields ONLY, not renaming backend fields */
+        /** 
+         * 🔥 DO NOT rename backend fields, just fallback for missing values
+         */
         event_id: event.event_id ?? event.id,
         name: event.name ?? event.title ?? "Untitled Event",
         title: event.title ?? event.name,
         posterUrl: event.poster_url ?? "",
 
-        /* ❗ backend fields kept EXACTLY */
         payment_methods: event.payment_methods ?? [],
         ticket_types: event.ticket_types ?? [],
 
         host_name: event.host_name ?? "Unknown Host",
-        host_id: event.host_id,
-        status: event.is_approved ? "Approved" : "Pending Approval",
+        host_id: event.host_id ?? null,
+
+        status: event.is_approved
+          ? "Approved"
+          : event.is_rejected
+          ? "Rejected"
+          : "Pending Approval",
       }));
 
-      setEvents(normalizedEvents);
+      setEvents(normalized);
       setLastFetched(now);
 
-      console.log("✅ Events fetched successfully:", normalizedEvents.length);
-    } catch (err: any) {
-      if (err?.message?.includes("Network Error")) {
-        console.error("🌐 CORS ERROR: Backend is reachable but blocked.");
+      console.log("✅ Events loaded:", normalized.length);
+    } catch (error: any) {
+      console.error("❌ Event Fetch Error:", error);
+
+      if (error?.message?.includes("Network Error")) {
+        console.error("🌐 POSSIBLE CORS ISSUE");
       }
 
-      if (err?.response?.status === 502) {
-        console.error("❌ Backend responded with 502 (Render sleeping?)");
+      if (error?.response?.status === 502) {
+        console.error("❌ Backend sleeping (Render cold start)");
       }
-
-      console.error("❌ Full error:", err);
     }
   };
+
+  /* ---------- Get a Single Event ---------- */
 
   const getEvent = (eventId: string) => {
     return events.find((e) => e.event_id.toString() === eventId);
   };
 
+  /* ---------- Load events on mount ---------- */
   useEffect(() => {
     fetchEvents();
   }, []);
@@ -108,8 +136,11 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   );
 };
 
+/* ---------- Hook ---------- */
+
 export const useEvents = () => {
   const context = useContext(EventContext);
-  if (!context) throw new Error("useEvents must be used within EventProvider");
+  if (!context)
+    throw new Error("useEvents must be used within EventProvider");
   return context;
 };

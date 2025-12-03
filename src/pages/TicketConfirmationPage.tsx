@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+ import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { DownloadIcon, PrinterIcon, MailIcon, PhoneIcon, CheckCircleIcon } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
