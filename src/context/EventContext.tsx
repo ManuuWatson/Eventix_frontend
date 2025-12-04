@@ -1,5 +1,13 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import axios from "axios";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import axiosInstance from "../api/axiosInstance";
+
+/* ---------- Types ---------- */
 
 export interface TicketType {
   id?: number;
@@ -17,10 +25,13 @@ export interface EventData {
   date: string;
   location: string;
   category?: string;
+
   payment_methods: string[];
   ticket_types: TicketType[];
+
   host_name?: string;
   host_id?: number;
+
   status: "Pending Approval" | "Approved" | "Rejected";
 }
 
@@ -30,21 +41,38 @@ export interface EventContextType {
   getEvent: (eventId: string) => EventData | undefined;
 }
 
+/* ---------- Context ---------- */
+
 const EventContext = createContext<EventContextType | undefined>(undefined);
 
-export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const EventProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [events, setEvents] = useState<EventData[]>([]);
+  const [lastFetched, setLastFetched] = useState<number | null>(null);
 
-  // ✅ Load API URL from .env (works local + deployed)
-  const API_BASE_URL = import.meta.env.VITE_API_URL;
-  const API_URL = `${API_BASE_URL}/events/`;
+  const API_URL = "/events/"; // axiosInstance chooses local or deployed
 
-  const fetchEvents = async () => {
+  /* ---------- Fetch Events ---------- */
+
+  const fetchEvents = async (force = false) => {
+    const now = Date.now();
+
+    // Cache: 5 minutes
+    if (!force && lastFetched && now - lastFetched < 5 * 60 * 1000) {
+      console.log("⏳ Using cached events");
+      return;
+    }
+
     try {
-      const response = await axios.get(API_URL, { timeout: 15000 });
-      const apiData = response.data;
+      console.log("🌐 Fetching events from:", API_URL);
 
-      const normalizedEvents: EventData[] = apiData.map((event: any) => ({
+      const response = await axiosInstance.get(API_URL, { timeout: 20000 });
+      const apiEvents = response.data;
+
+      console.log("📥 Raw backend payload:", apiEvents);
+
+      const normalized: EventData[] = apiEvents.map((event: any) => ({
         ...event,
         event_id: event.event_id ?? event.id,
         name: event.name ?? event.title ?? "Untitled Event",
@@ -53,27 +81,45 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         payment_methods: event.payment_methods ?? [],
         ticket_types: event.ticket_types ?? [],
         host_name: event.host_name ?? "Unknown Host",
-        host_id: event.host_id,
-        status: event.is_approved ? "Approved" : "Pending Approval",
+        host_id: event.host_id ?? null,
+
+        status: event.is_approved
+          ? "Approved"
+          : event.is_rejected
+            ? "Rejected"
+            : "Pending Approval",
       }));
 
-      setEvents(normalizedEvents);
-    } catch (err) {
-      console.error("❌ Error fetching events:", err);
+      setEvents(normalized);
+      setLastFetched(now);
+
+      console.log("✅ Events loaded:", normalized.length);
+    } catch (error: any) {
+      console.error("❌ Event Fetch Error:", error);
+
+      if (error?.message?.includes("Network Error")) {
+        console.error("🌐 POSSIBLE CORS ISSUE");
+      }
+
+      if (error?.response?.status === 502) {
+        console.error("❌ Backend sleeping (Render cold start)");
+      }
     }
   };
+
+  /* ---------- Get a Single Event ---------- */
 
   const getEvent = (eventId: string) => {
     return events.find((e) => e.event_id.toString() === eventId);
   };
 
-  useEffect(() => {
-    // Initial load
-    fetchEvents();
+  /* ---------- Auto-fetch + Polling every 5s ---------- */
 
-    // 🔥 Poll every 5 seconds for instant live updates
+  useEffect(() => {
+    fetchEvents(); // initial fetch
+
     const interval = setInterval(() => {
-      fetchEvents();
+      fetchEvents(true); // force fresh API fetch
     }, 5000);
 
     return () => clearInterval(interval);
@@ -86,8 +132,11 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   );
 };
 
+/* ---------- Hook ---------- */
+
 export const useEvents = () => {
   const context = useContext(EventContext);
-  if (!context) throw new Error("useEvents must be used within EventProvider");
+  if (!context)
+    throw new Error("useEvents must be used within EventProvider");
   return context;
 };
