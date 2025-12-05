@@ -50,7 +50,7 @@ const Header = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center">
             <img src={logo} alt="EventTix Logo" className="h-10 w-auto mr-2" />
-            <span className="text-2xl font-bold text-indigo-600">EventTix</span>
+            <span className="text-2xl font-bold text-indigo-600"></span>
           </Link>
 
           {/* Desktop Navigation Links */}
