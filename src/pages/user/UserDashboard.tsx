@@ -3,6 +3,7 @@ import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom'
 import axios from 'axios';
 import { CalendarIcon, TicketIcon, SettingsIcon, LogOutIcon, MenuIcon, XIcon, HeartIcon } from 'lucide-react';
 
+// Summary Card Component
 const SummaryCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode }> = ({
   title,
   value,
@@ -133,10 +134,22 @@ const UserDashboard: React.FC = () => {
                 <h1 className="text-2xl font-bold mb-6">Dashboard Overview</h1>
 
                 {/* Stats */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-8">
-                  <SummaryCard title="Upcoming Events" value={stats.upcomingEvents} icon={<CalendarIcon className="h-6 w-6 text-indigo-600" />} />
-                  <SummaryCard title="Tickets Purchased" value={stats.tickets} icon={<TicketIcon className="h-6 w-6 text-green-600" />} />
-                  <SummaryCard title="Liked Events" value={stats.likedEvents} icon={<HeartIcon className="h-6 w-6 text-red-600" />} />
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-8">
+                  <SummaryCard 
+                    title="Upcoming Events" 
+                    value={stats.upcomingEvents} 
+                    icon={<CalendarIcon className="h-6 w-6 text-indigo-600" />} 
+                  />
+                  <SummaryCard 
+                    title="Tickets Purchased" 
+                    value={stats.tickets} 
+                    icon={<TicketIcon className="h-6 w-6 text-green-600" />} 
+                  />
+                  <SummaryCard 
+                    title="Liked Events" 
+                    value={stats.likedEvents} 
+                    icon={<HeartIcon className="h-6 w-6 text-red-600" />} 
+                  />
                 </div>
 
                 {/* Recent Events */}
