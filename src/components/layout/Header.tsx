@@ -49,7 +49,7 @@ const Header = () => {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center">
-            <img src={logo} alt="EventTix Logo" className="h-12 w-auto mr-2" />
+            <img src={logo} alt="EventTix Logo" className="h-10 w-auto mr-2" />
             <span className="text-2xl font-bold text-indigo-600">EventTix</span>
           </Link>
 
