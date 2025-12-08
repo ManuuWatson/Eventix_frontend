@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useEvents } from '../context/EventContext';
+import { useAuth } from '../context/AuthContext';
 import {
   CalendarIcon,
   MapPinIcon,
@@ -12,29 +13,45 @@ import LoadingSpinner from '../components/layout/LoadingSpinner';
 const EventDetailsPage = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
-  const { events, getEvent } = useEvents(); // Use events directly for reactivity
+  const location = useLocation();
+  const { events, getEvent } = useEvents();
+  const { user } = useAuth();
 
   const [selectedTicket, setSelectedTicket] = useState<number | null>(null);
+  const [loginMessage, setLoginMessage] = useState<string | null>(null);
 
-  // Get event from context
-  // We use the function but also depend on 'events' so it updates when events are fetched
   const event = getEvent(eventId || "");
-
-  // If event is not found immediately, it might be loading or invalid.
-  // We can check if events are empty to show loading.
   const isLoading = events.length === 0;
 
+  // Display login message if redirected from login page
   useEffect(() => {
-    if (event) {
-      console.log("🎫 Event loaded:", event.name);
-      console.log("🎫 Ticket types:", event.ticket_types);
+    if (location.state && (location.state as any).message) {
+      setLoginMessage((location.state as any).message);
+      window.history.replaceState({}, document.title);
     }
-  }, [event]);
+  }, [location.state]);
 
-  if (isLoading) {
-    return <LoadingSpinner text="Loading event details..." />;
-  }
+  const handleProceedToCheckout = () => {
+    if (!selectedTicket) {
+      alert("Please select a ticket type");
+      return;
+    }
 
+    const checkoutUrl = `/checkout/${event?.event_id}?ticketType=${selectedTicket}`;
+
+    if (!user) {
+      navigate(`/login?next=${encodeURIComponent(checkoutUrl)}`, {
+        state: {
+          message: "Please login or register to complete your purchase"
+        }
+      });
+      return;
+    }
+
+    navigate(checkoutUrl);
+  };
+
+  if (isLoading) return <LoadingSpinner text="Loading event details..." />;
   if (!event) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
@@ -53,20 +70,8 @@ const EventDetailsPage = () => {
   }
 
   const eventDate = new Date(event.date);
-  const formattedDate = eventDate.toLocaleDateString('en-US', {
-    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
-  });
-  const formattedTime = eventDate.toLocaleTimeString('en-US', {
-    hour: '2-digit', minute: '2-digit'
-  });
-
-  const handleProceedToCheckout = () => {
-    if (!selectedTicket) {
-      alert("Please select a ticket type");
-      return;
-    }
-    navigate(`/checkout/${event.event_id}?ticketType=${selectedTicket}`);
-  };
+  const formattedDate = eventDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const formattedTime = eventDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -140,29 +145,33 @@ const EventDetailsPage = () => {
           {/* RIGHT SIDE: TICKETS */}
           <div className="lg:col-span-1">
             <div className="bg-gray-50 p-6 rounded-lg sticky top-6 border border-gray-200">
+
+              {loginMessage && (
+                <div className="mb-4 p-3 bg-yellow-100 border-l-4 border-yellow-400 text-yellow-700 rounded-md">
+                  {loginMessage}
+                </div>
+              )}
+
               <div className="flex items-center mb-4">
                 <TicketIcon className="h-6 w-6 text-indigo-600 mr-2" />
                 <h2 className="text-2xl font-semibold">Get Tickets</h2>
               </div>
 
               <div className="space-y-4 mb-6">
-                {event.ticket_types && event.ticket_types.length > 0 ? (
+                {event.ticket_types?.length > 0 ? (
                   event.ticket_types.map((ticket: any) => (
                     <div
                       key={ticket.id}
                       className={`border rounded-lg p-4 cursor-pointer transition-all duration-200 ${selectedTicket === ticket.id
-                          ? "border-indigo-600 bg-indigo-50 shadow-sm ring-1 ring-indigo-600"
-                          : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
+                        ? "border-indigo-600 bg-indigo-50 shadow-sm ring-1 ring-indigo-600"
+                        : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
                         }`}
                       onClick={() => setSelectedTicket(ticket.id)}
                     >
                       <div className="flex justify-between items-center mb-2">
                         <h3 className="font-medium text-gray-900">{ticket.ticket_name}</h3>
-                        <span className="text-indigo-600 font-bold text-lg">
-                          KES {ticket.ticket_price}
-                        </span>
+                        <span className="text-indigo-600 font-bold text-lg">KES {ticket.ticket_price}</span>
                       </div>
-
                       <p className="text-sm text-gray-600">
                         {ticket.ticket_quantity !== undefined
                           ? `Available: ${ticket.ticket_quantity}`
@@ -177,7 +186,6 @@ const EventDetailsPage = () => {
                 )}
               </div>
 
-              {/* CHECKOUT */}
               <button
                 className="w-full bg-indigo-600 text-white py-3 rounded-md font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors"
                 disabled={!selectedTicket}

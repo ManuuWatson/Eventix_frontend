@@ -15,7 +15,13 @@ const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // ✅ NEW: Capture ?next=/checkout/123
+  const nextUrl = new URLSearchParams(location.search).get("next");
+
+  // existing fallback redirect
   const from = (location.state as any)?.from?.pathname || "/dashboard";
+  const redirectMessage = (location.state as any)?.message;
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
@@ -56,8 +62,13 @@ const LoginPage: React.FC = () => {
         // clear form
         setForm({ email: "", password: "" });
 
-        // Navigate to unified dashboard route (role-based redirect will happen there)
-        navigate(from, { replace: true });
+        // ---------------------------------------------
+        // ✅ NEW: Redirect priority
+        // 1️⃣ next URL (checkout)
+        // 2️⃣ "from" (state)
+        // 3️⃣ dashboard
+        // ---------------------------------------------
+        navigate(nextUrl || from || "/dashboard", { replace: true });
       }
     } catch (error: any) {
       console.error("Login failed:", error);
@@ -80,11 +91,20 @@ const LoginPage: React.FC = () => {
           <h2 className="text-3xl font-extrabold text-gray-900">Welcome Back 👋</h2>
           <p className="mt-2 text-sm text-gray-600">
             Don’t have an account?{" "}
-            <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
+            <Link
+              to={`/register${nextUrl ? `?next=${encodeURIComponent(nextUrl)}&role=user` : ''}`}
+              className="font-medium text-indigo-600 hover:text-indigo-500"
+            >
               Sign up
             </Link>
           </p>
         </div>
+
+        {redirectMessage && (
+          <div className="p-3 rounded-md border-l-4 bg-blue-50 border-blue-500 text-blue-700">
+            <p className="text-sm">{redirectMessage}</p>
+          </div>
+        )}
 
         <form className="space-y-6" onSubmit={handleSubmit}>
           {formError && (

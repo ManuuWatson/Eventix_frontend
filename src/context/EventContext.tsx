@@ -39,6 +39,7 @@ export interface EventContextType {
   events: EventData[];
   fetchEvents: (force?: boolean) => Promise<void>;
   getEvent: (eventId: string) => EventData | undefined;
+  isLoading: boolean;
 }
 
 /* ---------- Context ---------- */
@@ -50,6 +51,7 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const [events, setEvents] = useState<EventData[]>([]);
   const [lastFetched, setLastFetched] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const API_URL = "/events/"; // axiosInstance chooses local or deployed
 
@@ -61,6 +63,7 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({
     // Cache: 5 minutes
     if (!force && lastFetched && now - lastFetched < 5 * 60 * 1000) {
       console.log("⏳ Using cached events");
+      setIsLoading(false);
       return;
     }
 
@@ -92,6 +95,7 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({
 
       setEvents(normalized);
       setLastFetched(now);
+      setIsLoading(false);
 
       console.log("✅ Events loaded:", normalized.length);
     } catch (error: any) {
@@ -104,6 +108,8 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({
       if (error?.response?.status === 502) {
         console.error("❌ Backend sleeping (Render cold start)");
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -126,7 +132,7 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({
   }, []);
 
   return (
-    <EventContext.Provider value={{ events, fetchEvents, getEvent }}>
+    <EventContext.Provider value={{ events, fetchEvents, getEvent, isLoading }}>
       {children}
     </EventContext.Provider>
   );

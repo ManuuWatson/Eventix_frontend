@@ -8,6 +8,7 @@ import CheckoutPage from "./pages/CheckoutPage";
 import TicketConfirmationPage from "./pages/TicketConfirmationPage";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+import CheckoutAuthPage from "./pages/auth/CheckoutAuthPage";
 import HostDashboard from "./pages/host/HostDashboard";
 import UserDashboard from "./pages/user/UserDashboard";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -22,7 +23,7 @@ const AppLayout = () => {
       <Header />
       <main className="flex-grow">
         {/* Outlet renders the matched child route component */}
-        <Outlet /> 
+        <Outlet />
       </main>
       <Footer />
     </div>
@@ -66,13 +67,14 @@ function AppContent() {
     <Routes>
       <Route path="/*" element={<AppLayout />}>
         {/* Public Pages & Routes wrapped in layout */}
-        <Route index element={<EventsPage />} /> 
+        <Route index element={<EventsPage />} />
         <Route path="events" element={<EventsPage />} />
         <Route path="events/:eventId" element={<EventDetailsPage />} />
-        
+
         {/* Auth Pages (Public but use layout) */}
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
+        <Route path="checkout-login" element={<CheckoutAuthPage />} />
 
         {/* Protected Routes (Use the ProtectedRoute wrapper as an element) */}
         <Route
@@ -94,7 +96,7 @@ function AppContent() {
 
         {/* Role-specific Dashboards */}
         <Route
-          path="host/dashboard/*" 
+          path="host/dashboard/*"
           element={
             <ProtectedRoute role="host">
               <HostDashboard />
@@ -102,7 +104,7 @@ function AppContent() {
           }
         />
         <Route
-          path="user/dashboard/*" 
+          path="user/dashboard/*"
           element={
             <ProtectedRoute role="user">
               <UserDashboard />

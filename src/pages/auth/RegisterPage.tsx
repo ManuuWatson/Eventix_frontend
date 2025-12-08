@@ -1,22 +1,29 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { UserIcon, MailIcon, LockIcon, EyeIcon, EyeOffIcon } from "lucide-react";
 import axios from "axios";
+import { useAuth } from "../../context/AuthContext";
 
 const RegisterPage: React.FC = () => {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const forcedRole = searchParams.get("role") as "user" | "host" | null;
+  const nextUrl = searchParams.get("next");
+  const navigate = useNavigate();
+  const { login } = useAuth();
+
   const [form, setForm] = useState({
     full_name: "",
     email: "",
     password: "",
     confirmPassword: "",
-    user_type: "" as "user" | "host" | "",
+    user_type: (forcedRole || "") as "user" | "host" | "",
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
 
   // Handle input change
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,8 +61,30 @@ const RegisterPage: React.FC = () => {
       );
 
       if (response.status === 201 || response.status === 200) {
-        setSuccessMessage("🎉 Registration successful! Redirecting to login...");
-        setTimeout(() => navigate("/login"), 2000);
+        setSuccessMessage("🎉 Registration successful! Logging you in...");
+
+        // Auto-login
+        try {
+          const loginResp = await axios.post(
+            "https://eventix-backend2.onrender.com/api/users/login/",
+            {
+              email: form.email,
+              password: form.password
+            },
+            { headers: { "Content-Type": "application/json" } }
+          );
+
+          if (loginResp.data.token) {
+            login(loginResp.data.user, loginResp.data.token);
+            // Redirect immediately to checkout (nextUrl) or dashboard
+            setTimeout(() => navigate(nextUrl || "/dashboard"), 1000);
+            return;
+          }
+        } catch (loginErr) {
+          console.error("Auto-login failed:", loginErr);
+          // Fallback to manual login if auto-login fails
+          setTimeout(() => navigate(`/login${nextUrl ? `?next=${encodeURIComponent(nextUrl)}` : ''}`), 2000);
+        }
       } else {
         setFormError("Unexpected response from server. Please try again.");
       }
@@ -92,11 +121,10 @@ const RegisterPage: React.FC = () => {
         <form className="space-y-6" onSubmit={handleSubmit}>
           {(formError || successMessage) && (
             <div
-              className={`p-3 rounded-md border-l-4 ${
-                formError
-                  ? "bg-red-50 border-red-500 text-red-700"
-                  : "bg-green-50 border-green-500 text-green-700"
-              }`}
+              className={`p-3 rounded-md border-l-4 ${formError
+                ? "bg-red-50 border-red-500 text-red-700"
+                : "bg-green-50 border-green-500 text-green-700"
+                }`}
             >
               <p className="text-sm">{formError || successMessage}</p>
             </div>
@@ -169,35 +197,37 @@ const RegisterPage: React.FC = () => {
             />
           </div>
 
-          {/* Account Type */}
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
-            <p className="text-sm font-medium text-gray-700 mb-2">Select your account type:</p>
-            <div className="flex items-center justify-between">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  name="user_type"
-                  value="user"
-                  checked={form.user_type === "user"}
-                  onChange={handleChange}
-                  className="text-indigo-600"
-                />
-                <span>User (Ticket Buyer)</span>
-              </label>
+          {/* Account Type - Hidden if forced */}
+          {!forcedRole && (
+            <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+              <p className="text-sm font-medium text-gray-700 mb-2">Select your account type:</p>
+              <div className="flex items-center justify-between">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    name="user_type"
+                    value="user"
+                    checked={form.user_type === "user"}
+                    onChange={handleChange}
+                    className="text-indigo-600"
+                  />
+                  <span>User (Ticket Buyer)</span>
+                </label>
 
-              <label className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  name="user_type"
-                  value="host"
-                  checked={form.user_type === "host"}
-                  onChange={handleChange}
-                  className="text-indigo-600"
-                />
-                <span>Event Host</span>
-              </label>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    name="user_type"
+                    value="host"
+                    checked={form.user_type === "host"}
+                    onChange={handleChange}
+                    className="text-indigo-600"
+                  />
+                  <span>Event Host</span>
+                </label>
+              </div>
             </div>
-          </div>
+          )}
 
           <button
             type="submit"
