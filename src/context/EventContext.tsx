@@ -126,7 +126,7 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({
 
     const interval = setInterval(() => {
       fetchEvents(true); // force fresh API fetch
-    }, 5000);
+    }, 60000);
 
     return () => clearInterval(interval);
   }, []);

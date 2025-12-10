@@ -4,7 +4,7 @@ import axios, { InternalAxiosRequestConfig } from "axios";
 const API_BASE_URL =
   (import.meta as any).env.VITE_API_BASE_URL ||
   "https://eventix-backend2.onrender.com/api";
-  
+
 
 console.log("🌐 Axios Base URL:", API_BASE_URL);
 
@@ -58,6 +58,18 @@ axiosInstance.interceptors.response.use(
       error.response?.status,
       error.response?.data || error.message
     );
+
+    // Check for invalid token and clear it to allow public access/re-login
+    if (
+      error.response?.status === 401 &&
+      error.response?.data?.code === 'token_not_valid'
+    ) {
+      console.warn("⚠️ Token expired or invalid. Clearing token.");
+      localStorage.removeItem("eventix_token");
+      // Optional: Redirect to login or reload page
+      // window.location.href = "/auth"; 
+    }
+
     return Promise.reject(error);
   }
 );

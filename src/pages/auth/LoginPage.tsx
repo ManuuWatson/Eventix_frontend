@@ -12,14 +12,12 @@ import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 
 const LoginPage: React.FC = () => {
-  const { login } = useAuth();
+  const { login } = useAuth(); // ✅ use context
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ✅ NEW: Capture ?next=/checkout/123
+  // Capture ?next=/checkout/123
   const nextUrl = new URLSearchParams(location.search).get("next");
-
-  // existing fallback redirect
   const from = (location.state as any)?.from?.pathname || "/dashboard";
   const redirectMessage = (location.state as any)?.message;
 
@@ -56,18 +54,13 @@ const LoginPage: React.FC = () => {
       if (response.status === 200 || response.status === 201) {
         const { user: loggedUser, token } = response.data;
 
-        // store in context + localStorage
+        // ✅ Store in context only
         login(loggedUser, token);
 
         // clear form
         setForm({ email: "", password: "" });
 
-        // ---------------------------------------------
-        // ✅ NEW: Redirect priority
-        // 1️⃣ next URL (checkout)
-        // 2️⃣ "from" (state)
-        // 3️⃣ dashboard
-        // ---------------------------------------------
+        // Redirect priority: next URL > from > dashboard
         navigate(nextUrl || from || "/dashboard", { replace: true });
       }
     } catch (error: any) {
@@ -75,9 +68,7 @@ const LoginPage: React.FC = () => {
       const backendError =
         error.response?.data?.detail ||
         error.response?.data?.message ||
-        (window.navigator.onLine
-          ? "Login failed. Please check your credentials."
-          : "No internet connection. Please reconnect and try again.");
+        "Login failed. Check your credentials or internet connection.";
       setFormError(backendError);
     } finally {
       setIsLoading(false);

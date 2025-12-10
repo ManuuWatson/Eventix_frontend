@@ -5,16 +5,16 @@ import Footer from "./components/layout/Footer";
 import EventsPage from "./pages/EventsPage";
 import EventDetailsPage from "./pages/EventDetailsPage";
 import CheckoutPage from "./pages/CheckoutPage";
+import MpesaPaymentPage from "./pages/MpesaPaymentPage";
 import TicketConfirmationPage from "./pages/TicketConfirmationPage";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
-import CheckoutAuthPage from "./pages/auth/CheckoutAuthPage";
 import HostDashboard from "./pages/host/HostDashboard";
 import UserDashboard from "./pages/user/UserDashboard";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { EventProvider } from "./context/EventContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
-import LoadingSpinner from "./components/layout/LoadingSpinner"; // Import the spinner component
+import LoadingSpinner from "./components/layout/LoadingSpinner";
 
 // ✅ App Layout: Provides consistent header/footer wrapper for most pages
 const AppLayout = () => {
@@ -35,7 +35,6 @@ function RedirectBasedOnRole() {
   const { user, isAuthLoading } = useAuth();
 
   if (isAuthLoading) {
-    // Should ideally not be hit if wrapped in ProtectedRoute, but safe to include
     return <LoadingSpinner />;
   }
 
@@ -65,23 +64,27 @@ function AppContent() {
 
   return (
     <Routes>
-      <Route path="/*" element={<AppLayout />}>
-        {/* Public Pages & Routes wrapped in layout */}
-        <Route index element={<EventsPage />} />
-        <Route path="events" element={<EventsPage />} />
+      <Route element={<AppLayout />}>
+        {/* Public Routes */}
+        <Route path="/" element={<EventsPage />} />
         <Route path="events/:eventId" element={<EventDetailsPage />} />
-
-        {/* Auth Pages (Public but use layout) */}
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
-        <Route path="checkout-login" element={<CheckoutAuthPage />} />
 
-        {/* Protected Routes (Use the ProtectedRoute wrapper as an element) */}
+        {/* Protected Routes */}
         <Route
           path="checkout/:eventId"
           element={
             <ProtectedRoute>
               <CheckoutPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="payment/mpesa"
+          element={
+            <ProtectedRoute>
+              <MpesaPaymentPage />
             </ProtectedRoute>
           }
         />

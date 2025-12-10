@@ -1,5 +1,5 @@
 // src/context/AuthContext.tsx
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, ReactNode } from "react";
 
 interface User {
   id: number;
@@ -19,52 +19,33 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(() => {
+    const savedUser = localStorage.getItem("eventix_user");
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
 
-  useEffect(() => {
-    console.log("🔑 AuthProvider mounted — restoring user from localStorage...");
-    const timer = setTimeout(() => {
-      try {
-        const storedUser = localStorage.getItem("eventix_user");
-        const storedToken = localStorage.getItem("eventix_token");
-        if (storedUser && storedToken) {
-          const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
-          setToken(storedToken);
-          console.log("✅ Restored user from localStorage:", parsedUser);
-        } else {
-          console.log("ℹ️ No stored credentials found.");
-        }
-      } catch (error) {
-        console.error("❌ Error loading stored credentials:", error);
-      } finally {
-        setIsAuthLoading(false);
-        console.log("🕓 Auth loading complete");
-      }
-    }, 300); // small delay ensures smoother load
+  const [token, setToken] = useState<string | null>(() => {
+    return localStorage.getItem("eventix_token");
+  });
 
-    return () => clearTimeout(timer);
-  }, []);
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
 
-  const login = (userData: User, token: string) => {
-    console.log("🔐 Logging in user:", userData);
+  // Sync token to axios on mount/change is handled by axios interceptor reading localStorage,
+  // implies we must keep localStorage up to date.
+
+  const login = (userData: User, jwtToken: string) => {
     setUser(userData);
-    setToken(token);
+    setToken(jwtToken);
     localStorage.setItem("eventix_user", JSON.stringify(userData));
-    localStorage.setItem("eventix_token", token);
+    localStorage.setItem("eventix_token", jwtToken);
   };
 
   const logout = () => {
-    console.log("🚪 Logging out...");
     setUser(null);
     setToken(null);
     localStorage.removeItem("eventix_user");
     localStorage.removeItem("eventix_token");
   };
-
-  console.log("👀 AuthContext state:", { user, token, isAuthLoading });
 
   return (
     <AuthContext.Provider value={{ user, token, isAuthLoading, login, logout }}>

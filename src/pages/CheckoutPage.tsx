@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useEvents } from '../context/EventContext';
-import { CreditCardIcon, PhoneIcon, WalletIcon, CheckIcon, Loader2 } from 'lucide-react';
+import { CreditCardIcon, PhoneIcon, WalletIcon, CheckIcon } from 'lucide-react';
 import LoadingSpinner from '../components/layout/LoadingSpinner';
 
 interface TicketType {
@@ -25,12 +25,7 @@ const CheckoutPage = () => {
   const [searchParams] = useSearchParams();
   const ticketTypeId = searchParams.get('ticketType') || '';
   const navigate = useNavigate();
-  const { getEvent, isLoading } = useEvents(); // Destructure isLoading
-  // Import LoadingSpinner
-  // (Assuming imports are at the top, but we can't easily add one with multi_replace without context. 
-  //  Actually, I should add the import first or assumes it exists? It doesn't exist.
-  //  I will handle import in a separate block or relying on the file context if possible. 
-  //  Wait, I can replace line 4 with import too or just add it.)
+  const { getEvent, isLoading } = useEvents();
 
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('M-Pesa');
   const [formData, setFormData] = useState({
@@ -46,10 +41,6 @@ const CheckoutPage = () => {
   const event: EventData | undefined = getEvent(eventId || '') as EventData | undefined;
   const ticketType = event?.ticket_types.find(t => t.id?.toString() === ticketTypeId);
 
-  useEffect(() => {
-    // Debug logging removed
-  }, [event, ticketType, navigate, isLoading, eventId, ticketTypeId]);
-
   if (isLoading) return <LoadingSpinner text="Loading checkout details..." />;
 
   if (!event) {
@@ -59,9 +50,6 @@ const CheckoutPage = () => {
         <p className="text-gray-600 mb-4">
           We couldn't find the event details. Please try refreshing or go back to events.
         </p>
-        <div className="text-xs text-gray-500 mb-6 bg-gray-100 p-2 rounded">
-          Debug: EventID={eventId}, Loaded Events={isLoading ? 'Loading...' : 'Done'}
-        </div>
         <button
           onClick={() => navigate('/')}
           className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition"
@@ -79,9 +67,6 @@ const CheckoutPage = () => {
         <p className="text-gray-600 mb-4">
           The selected ticket type is invalid or no longer available.
         </p>
-        <div className="text-xs text-gray-500 mb-6 bg-gray-100 p-2 rounded">
-          Debug: TicketID={ticketTypeId}
-        </div>
         <button
           onClick={() => navigate(`/events/${eventId}`)}
           className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition"
@@ -93,8 +78,7 @@ const CheckoutPage = () => {
   }
 
   const subtotal = ticketType.ticket_price * formData.quantity;
-  const serviceFee = Math.round(subtotal * 0.1);
-  const total = subtotal + serviceFee;
+  const total = subtotal;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -110,6 +94,23 @@ const CheckoutPage = () => {
       alert('Please select a payment method');
       return;
     }
+
+    if (selectedPaymentMethod === 'M-Pesa') {
+      navigate('/payment/mpesa', {
+        state: {
+          amount: total,
+          phone: formData.phone,
+          eventName: event?.title,
+          ticketType: ticketType?.ticket_name,
+          quantity: formData.quantity,
+          eventId: parseInt(eventId || "0"),
+          ticketTypeId: parseInt(ticketTypeId || "0")
+        }
+      });
+      return;
+    }
+
+    // Fallback for other methods (simulated)
     setIsProcessing(true);
     await new Promise(resolve => setTimeout(resolve, 2000));
     const ticketId = Math.random().toString(36).substring(2, 15);
@@ -118,7 +119,7 @@ const CheckoutPage = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 relative">
       <h1 className="text-3xl font-bold text-center mb-8">Checkout</h1>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
@@ -219,7 +220,6 @@ const CheckoutPage = () => {
               <div className="flex justify-between mb-2"><span>Price per ticket:</span><span>{ticketType.ticket_price}</span></div>
               <div className="flex justify-between mb-2"><span>Quantity:</span><span>{formData.quantity}</span></div>
               <div className="flex justify-between mb-2"><span>Subtotal:</span><span>{subtotal}</span></div>
-              <div className="flex justify-between mb-2"><span>Service Fee:</span><span>{serviceFee}</span></div>
             </div>
             <div className="border-t border-gray-200 pt-4 mb-6 flex justify-between font-bold">
               <span>Total:</span>
