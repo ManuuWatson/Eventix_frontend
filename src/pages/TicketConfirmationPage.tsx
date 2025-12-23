@@ -10,7 +10,7 @@ const TicketConfirmationPage = () => {
   const { ticketId } = useParams<{ ticketId: string }>();
 
   const [emailSent, setEmailSent] = useState(false);
-
+  const [shareSuccess, setShareSuccess] = useState("");
 
   const [ticket, setTicket] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -53,24 +53,44 @@ const TicketConfirmationPage = () => {
     qrValue: `TICKET-${ticket.id}-${ticket.created_at}`
   };
 
-  const handleDownloadPDF = async () => {
+  const generateTicketCanvas = async () => {
     const input = document.getElementById('ticket-content');
-    if (!input) return;
+    if (!input) return null;
 
+    return await html2canvas(input, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      logging: true,
+      backgroundColor: '#ffffff',
+      scrollY: -window.scrollY
+    });
+  };
+
+  const handleDownloadPDF = async () => {
     try {
-      // Improve html2canvas capture options
-      const canvas = await html2canvas(input, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: true,
-        backgroundColor: '#ffffff',
-        scrollY: -window.scrollY
-      });
+      const canvas = await generateTicketCanvas();
+      if (!canvas) return;
+
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+
+      // Calculate ratio to fit width
+      const ratioWidth = pageWidth / imgWidth;
+      // Calculate ratio to fit height
+      const ratioHeight = pageHeight / imgHeight;
+
+      // Use the smaller ratio to ensure it fits both dimensions
+      const ratio = Math.min(ratioWidth, ratioHeight);
+
+      const pdfWidth = imgWidth * ratio;
+      const pdfHeight = imgHeight * ratio;
 
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`ticket-${ticketDetails.id}.pdf`);
@@ -91,7 +111,55 @@ const TicketConfirmationPage = () => {
     }
   };
 
-  const handleWhatsAppShare = () => {
+  const handleWhatsAppShare = async () => {
+    try {
+      const canvas = await generateTicketCanvas();
+      if (!canvas) return;
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          alert('Failed to generate ticket image for sharing.');
+          return;
+        }
+
+        const file = new File([blob], `ticket-${ticketDetails.id}.png`, { type: 'image/png' });
+        const shareData = {
+          files: [file],
+          title: `Ticket for ${ticketDetails.eventTitle}`,
+          text: `Check out my ticket for ${ticketDetails.eventTitle}!`
+        };
+
+        // Try Web Share API (Mobile/Standard)
+        if (navigator.canShare && navigator.canShare(shareData)) {
+          try {
+            await navigator.share(shareData);
+          } catch (err) {
+            console.warn("Share API cancelled or failed:", err);
+          }
+        } else {
+          // Fallback to Clipboard (Desktop)
+          try {
+            const clipboardItem = new ClipboardItem({ 'image/png': blob });
+            await navigator.clipboard.write([clipboardItem]);
+            setShareSuccess("Image copied! Paste in WhatsApp Web.");
+            setTimeout(() => setShareSuccess(""), 4000);
+
+            // Open WhatsApp Web in a new tab for convenience
+            window.open('https://web.whatsapp.com', '_blank');
+          } catch (clipboardErr) {
+            console.error("Clipboard failed:", clipboardErr);
+            fallbackWhatsAppShare();
+          }
+        }
+      }, 'image/png');
+
+    } catch (err) {
+      console.error("Error sharing:", err);
+      fallbackWhatsAppShare();
+    }
+  };
+
+  const fallbackWhatsAppShare = () => {
     const text = `Check out my ticket for ${ticketDetails.eventTitle}!`;
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
@@ -109,7 +177,7 @@ const TicketConfirmationPage = () => {
           Your tickets have been successfully purchased.
         </p>
       </div>
-      <div id="ticket-content" className="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+      <div id="ticket-content" className="bg-white rounded-lg shadow-md overflow-hidden mb-8 pb-24">
         {/* Ticket Header */}
         <div className="bg-indigo-600 text-white p-6">
           <h2 className="text-2xl font-bold">{ticketDetails.eventTitle}</h2>
@@ -118,8 +186,8 @@ const TicketConfirmationPage = () => {
           </p>
         </div>
         {/* Ticket Content */}
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="p-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             {/* Left Column - Ticket Info */}
             <div>
               <div className="mb-6">
@@ -174,13 +242,15 @@ const TicketConfirmationPage = () => {
               </div>
             </div>
             {/* Right Column - QR Code */}
-            <div className="flex flex-col items-center justify-center">
-              <div className="mb-4 p-4 bg-white border border-gray-200 rounded-md">
-                <QRCodeCanvas value={ticketDetails.qrValue} size={180} level="H" includeMargin={true} />
+            <div className="flex flex-col items-center justify-center py-6">
+              <div className="mb-4 p-6 bg-white border-2 border-dashed border-gray-300 rounded-xl shadow-sm">
+                <QRCodeCanvas value={ticketDetails.qrValue} size={200} level="H" includeMargin={true} />
               </div>
-              <p className="text-sm text-gray-500 text-center mb-4">
-                Present this QR code at the event entrance for validation
+              <p className="text-sm font-medium text-gray-500 text-center uppercase tracking-wide">
+                Scan for Entry
               </p>
+              {/* Extra spacer to ensure capture tool includes bottom area */}
+              <div className="h-8"></div>
             </div>
           </div>
         </div>
@@ -189,11 +259,11 @@ const TicketConfirmationPage = () => {
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
         <h3 className="text-lg font-semibold mb-4">Get Your Ticket</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <button onClick={handleDownloadPDF} className="flex items-center justify-center bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700">
+          <button onClick={handleDownloadPDF} className="flex items-center justify-center bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 transition-colors">
             <DownloadIcon className="h-5 w-5 mr-2" />
             Download PDF Ticket
           </button>
-          <button className="flex items-center justify-center bg-gray-200 text-gray-800 py-3 px-4 rounded-md hover:bg-gray-300">
+          <button className="flex items-center justify-center bg-gray-200 text-gray-800 py-3 px-4 rounded-md hover:bg-gray-300 transition-colors">
             <PrinterIcon className="h-5 w-5 mr-2" />
             Print Ticket
           </button>
@@ -201,10 +271,10 @@ const TicketConfirmationPage = () => {
       </div>
       {/* Send Ticket */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h3 className="text-lg font-semibold mb-4">Send Ticket</h3>
+        <h3 className="text-lg font-semibold mb-4">Share Ticket</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-          <button className={`flex items-center justify-center py-3 px-4 rounded-md ${emailSent ? 'bg-green-100 text-green-800 cursor-default' : 'bg-blue-600 text-white hover:bg-blue-700'}`} onClick={handleSendEmail} disabled={emailSent}>
+          <button className={`flex items-center justify-center py-3 px-4 rounded-md transition-colors ${emailSent ? 'bg-green-100 text-green-800 cursor-default' : 'bg-blue-600 text-white hover:bg-blue-700'}`} onClick={handleSendEmail} disabled={emailSent}>
             {emailSent ? <>
               <CheckCircleIcon className="h-5 w-5 mr-2" />
               Email Sent
@@ -213,11 +283,13 @@ const TicketConfirmationPage = () => {
               Send via Email
             </>}
           </button>
-          <button className="flex items-center justify-center py-3 px-4 rounded-md bg-green-500 text-white hover:bg-green-600" onClick={handleWhatsAppShare}>
+
+          <button className={`flex items-center justify-center py-3 px-4 rounded-md transition-colors ${shareSuccess ? 'bg-green-600 text-white' : 'bg-green-500 text-white hover:bg-green-600'}`} onClick={handleWhatsAppShare}>
             <ShareIcon className="h-5 w-5 mr-2" />
-            Share via WhatsApp
+            {shareSuccess || "Share via WhatsApp"}
           </button>
         </div>
+        {shareSuccess && <p className="text-sm text-green-600 mt-2 text-center animate-pulse">{shareSuccess}</p>}
       </div>
       <div className="text-center">
         <Link to="/" className="text-indigo-600 hover:text-indigo-800 font-medium">
