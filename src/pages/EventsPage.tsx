@@ -117,7 +117,7 @@ const EventsPage = () => {
   return (
     <div className="container mx-auto px-4 py-8">
 
-      {/* ================= HERO CAROUSEL ================= */} 
+      {/* ================= HERO CAROUSEL ================= */}
       <section className="relative mb-12 h-[500px] rounded-lg overflow-hidden shadow-lg">
         <div
           className="flex w-full h-full transition-transform duration-900 ease-in-out"
@@ -159,7 +159,7 @@ const EventsPage = () => {
         ) : error ? (
           <div className="text-center py-10 text-red-600">Failed to load events.</div>
         ) : filteredEvents.length === 0 ? (
-          <div className="text-center py-10">No events found.</div>
+          <div className="text-center py-10">No upcoming events</div>
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {filteredEvents.map((event: EventType) => (

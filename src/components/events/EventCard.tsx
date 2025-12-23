@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Heart, Share2 } from "lucide-react";
-import axios from "axios";
+import axiosInstance from "../../api/axiosInstance";
+import { useAuth } from "../../context/AuthContext";
 
 const FALLBACK_IMAGE_PATH = "/images/fallback-poster.png";
 
@@ -33,24 +34,30 @@ const EventCard: React.FC<EventCardProps> = ({ event, onLikeUpdate }) => {
     liked_by_user,
   } = event;
 
+  const { token } = useAuth();
+
   const [likeCount, setLikeCount] = useState<number>(total_likes || 0);
   const [isLiked, setIsLiked] = useState<boolean>(
-    liked_by_user || localStorage.getItem(`anon_liked_${event_id}`) === "true"
+    liked_by_user || false
   );
   const [isLiking, setIsLiking] = useState(false);
 
-  const baseUrl =
-    (import.meta as any).env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+  // const baseUrl = (import.meta as any).env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
   // Sync likes when event updates from parent
   useEffect(() => {
     setLikeCount(total_likes || 0);
     setIsLiked(
-      liked_by_user || localStorage.getItem(`anon_liked_${event_id}`) === "true"
+      liked_by_user || false
     );
   }, [total_likes, liked_by_user, event_id]);
 
   const handleLike = async () => {
+    if (!token) {
+      alert("You should login to like this event.");
+      return;
+    }
+
     if (isLiking) return;
     setIsLiking(true);
 
@@ -63,16 +70,14 @@ const EventCard: React.FC<EventCardProps> = ({ event, onLikeUpdate }) => {
     setLikeCount((prev) => (newLikedStatus ? prev + 1 : prev - 1));
 
     try {
-      const res = await axios.post(`${baseUrl}/api/events/${event_id}/like/`);
+      const res = await axiosInstance.post(`/events/${event_id}/like/`);
       const data = res.data;
 
       setLikeCount(data.likes_count);
 
-      if (data.status === "liked" || data.status === "liked_anonymous") {
-        localStorage.setItem(`anon_liked_${event_id}`, "true");
+      if (data.status === "liked") {
         setIsLiked(true);
       } else {
-        localStorage.removeItem(`anon_liked_${event_id}`);
         setIsLiked(false);
       }
 
@@ -102,10 +107,10 @@ const EventCard: React.FC<EventCardProps> = ({ event, onLikeUpdate }) => {
     poster_url && poster_url.startsWith("http")
       ? poster_url
       : poster && poster.startsWith("http")
-      ? poster
-      : poster
-      ? `${baseUrl}${poster.startsWith("/") ? poster : "/" + poster}`
-      : FALLBACK_IMAGE_PATH;
+        ? poster
+        : poster
+          ? `${baseUrl}${poster.startsWith("/") ? poster : "/" + poster}`
+          : FALLBACK_IMAGE_PATH;
 
   const [currentImageSrc, setCurrentImageSrc] = useState(initialImageSrc);
   const handleImageError = () => setCurrentImageSrc(FALLBACK_IMAGE_PATH);
@@ -150,9 +155,8 @@ const EventCard: React.FC<EventCardProps> = ({ event, onLikeUpdate }) => {
           <button
             onClick={handleLike}
             disabled={isLiking}
-            className={`flex items-center gap-1 text-sm ${
-              isLiked ? "text-red-500" : "text-gray-500 hover:text-red-500 transition"
-            }`}
+            className={`flex items-center gap-1 text-sm ${isLiked ? "text-red-500" : "text-gray-500 hover:text-red-500 transition"
+              }`}
           >
             <Heart className="h-4 w-4" />
             <span>{isLiked ? "Liked" : "Like"}</span>

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import axiosInstance from '../../api/axiosInstance';
+import UserTickets from './UserTickets';
+import UserEvents from './UserEvents';
+import UserLikedEvents from './UserLikedEvents';
 import { CalendarIcon, TicketIcon, SettingsIcon, LogOutIcon, MenuIcon, XIcon, HeartIcon } from 'lucide-react';
 
 // Summary Card Component
@@ -24,7 +27,6 @@ const UserDashboard: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [stats, setStats] = useState({ upcomingEvents: 0, tickets: 0, likedEvents: 0 });
   const [recentEvents, setRecentEvents] = useState<any[]>([]);
-  const baseUrl = (import.meta as any).env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
   const handleLogout = () => {
     localStorage.clear();
@@ -37,9 +39,8 @@ const UserDashboard: React.FC = () => {
   const NavLink = ({ to, icon: Icon, children }: { to: string; icon: React.ElementType; children: React.ReactNode }) => (
     <Link
       to={to}
-      className={`flex items-center px-4 py-3 rounded-md text-sm md:text-base transition duration-150 ease-in-out ${
-        isActive(to) ? 'bg-indigo-900 shadow-md' : 'hover:bg-indigo-700'
-      }`}
+      className={`flex items-center px-4 py-3 rounded-md text-sm md:text-base transition duration-150 ease-in-out ${isActive(to) ? 'bg-indigo-900 shadow-md' : 'hover:bg-indigo-700'
+        }`}
       onClick={() => setIsMobileMenuOpen(false)}
     >
       <Icon className="h-5 w-5 mr-3" />
@@ -51,7 +52,7 @@ const UserDashboard: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get(`${baseUrl}/api/user/dashboard`);
+        const res = await axiosInstance.get('/users/dashboard/');
         const data = res.data;
         setStats({
           upcomingEvents: data.upcoming_events || 0,
@@ -75,11 +76,11 @@ const UserDashboard: React.FC = () => {
           <p className="text-indigo-200 text-sm mt-1">Welcome back!</p>
         </div>
         <nav className="space-y-1 flex-1">
-          <NavLink to="/dashboard" icon={CalendarIcon}>Dashboard</NavLink>
-          <NavLink to="/dashboard/events" icon={CalendarIcon}>My Events</NavLink>
-          <NavLink to="/dashboard/tickets" icon={TicketIcon}>Tickets</NavLink>
-          <NavLink to="/dashboard/liked" icon={HeartIcon}>Liked Events</NavLink>
-          <NavLink to="/dashboard/settings" icon={SettingsIcon}>Settings</NavLink>
+          <NavLink to="/user/dashboard" icon={CalendarIcon}>Dashboard</NavLink>
+          <NavLink to="/user/dashboard/events" icon={CalendarIcon}>My Events</NavLink>
+          <NavLink to="/user/dashboard/tickets" icon={TicketIcon}>Tickets</NavLink>
+          <NavLink to="/user/dashboard/liked" icon={HeartIcon}>Liked Events</NavLink>
+          <NavLink to="/user/dashboard/settings" icon={SettingsIcon}>Settings</NavLink>
         </nav>
         <button
           className="flex items-center px-4 py-3 rounded-md hover:bg-indigo-700 text-left transition duration-150 ease-in-out mt-4"
@@ -108,11 +109,11 @@ const UserDashboard: React.FC = () => {
             </button>
           </div>
           <nav className="space-y-1">
-            <NavLink to="/dashboard" icon={CalendarIcon}>Dashboard</NavLink>
-            <NavLink to="/dashboard/events" icon={CalendarIcon}>My Events</NavLink>
-            <NavLink to="/dashboard/tickets" icon={TicketIcon}>Tickets</NavLink>
-            <NavLink to="/dashboard/liked" icon={HeartIcon}>Liked Events</NavLink>
-            <NavLink to="/dashboard/settings" icon={SettingsIcon}>Settings</NavLink>
+            <NavLink to="/user/dashboard" icon={CalendarIcon}>Dashboard</NavLink>
+            <NavLink to="/user/dashboard/events" icon={CalendarIcon}>My Events</NavLink>
+            <NavLink to="/user/dashboard/tickets" icon={TicketIcon}>Tickets</NavLink>
+            <NavLink to="/user/dashboard/liked" icon={HeartIcon}>Liked Events</NavLink>
+            <NavLink to="/user/dashboard/settings" icon={SettingsIcon}>Settings</NavLink>
             <button
               className="flex items-center px-4 py-3 rounded-md hover:bg-indigo-700 w-full text-left mt-4"
               onClick={handleLogout}
@@ -135,30 +136,30 @@ const UserDashboard: React.FC = () => {
 
                 {/* Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-8">
-                  <SummaryCard 
-                    title="Upcoming Events" 
-                    value={stats.upcomingEvents} 
-                    icon={<CalendarIcon className="h-6 w-6 text-indigo-600" />} 
+                  <SummaryCard
+                    title="Upcoming Events"
+                    value={stats.upcomingEvents}
+                    icon={<CalendarIcon className="h-6 w-6 text-indigo-600" />}
                   />
-                  <SummaryCard 
-                    title="Tickets Purchased" 
-                    value={stats.tickets} 
-                    icon={<TicketIcon className="h-6 w-6 text-green-600" />} 
+                  <SummaryCard
+                    title="Tickets Purchased"
+                    value={stats.tickets}
+                    icon={<TicketIcon className="h-6 w-6 text-green-600" />}
                   />
-                  <SummaryCard 
-                    title="Liked Events" 
-                    value={stats.likedEvents} 
-                    icon={<HeartIcon className="h-6 w-6 text-red-600" />} 
+                  <SummaryCard
+                    title="Liked Events"
+                    value={stats.likedEvents}
+                    icon={<HeartIcon className="h-6 w-6 text-red-600" />}
                   />
                 </div>
 
                 {/* Recent Events */}
-                <h2 className="text-lg font-semibold mb-4">Recent Events</h2>
+                <h2 className="text-lg font-semibold mb-4">Recent Activity</h2>
                 {recentEvents.length === 0 ? (
                   <p className="text-gray-500">You haven’t interacted with any events yet.</p>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                    {recentEvents.map((event) => (
+                    {recentEvents.map((event: any) => (
                       <div key={event.event_id} className="bg-white p-5 rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
                         <h3 className="text-xl font-semibold mb-2">{event.name}</h3>
                         <p className="text-sm text-gray-600 mb-2 flex items-center">
@@ -173,10 +174,10 @@ const UserDashboard: React.FC = () => {
             }
           />
           {/* Other user routes */}
-          <Route path="events/*" element={<div>My Events Page</div>} />
-          <Route path="tickets/*" element={<div>Tickets Page</div>} />
-          <Route path="liked/*" element={<div>Liked Events Page</div>} />
-          <Route path="settings/*" element={<div>Settings Page</div>} />
+          <Route path="tickets" element={<UserTickets />} />
+          <Route path="events" element={<UserEvents />} />
+          <Route path="liked" element={<UserLikedEvents />} />
+          <Route path="settings" element={<div>Settings Page (Coming Soon)</div>} />
         </Routes>
       </main>
     </div>
