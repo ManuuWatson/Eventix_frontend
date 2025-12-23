@@ -42,7 +42,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onLikeUpdate }) => {
   );
   const [isLiking, setIsLiking] = useState(false);
 
-  // const baseUrl = (import.meta as any).env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+  const baseUrl = (import.meta as any).env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
   // Sync likes when event updates from parent
   useEffect(() => {
@@ -159,7 +159,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onLikeUpdate }) => {
               }`}
           >
             <Heart className="h-4 w-4" />
-            <span>{isLiked ? "Liked" : "Like"}</span>
+            <span>{isLiked ? "Liked" : "Like"} ({likeCount})</span>
           </button>
 
           <button
