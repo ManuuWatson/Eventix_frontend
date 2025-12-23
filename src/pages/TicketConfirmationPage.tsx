@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { DownloadIcon, PrinterIcon, MailIcon, PhoneIcon, CheckCircleIcon } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
+import { DownloadIcon, PrinterIcon, MailIcon, CheckCircleIcon, ShareIcon } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import axiosInstance from '../api/axiosInstance';
 
 const TicketConfirmationPage = () => {
   const { ticketId } = useParams<{ ticketId: string }>();
 
   const [emailSent, setEmailSent] = useState(false);
-  const [smsSent, setSmsSent] = useState(false);
+
 
   const [ticket, setTicket] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -51,17 +53,48 @@ const TicketConfirmationPage = () => {
     qrValue: `TICKET-${ticket.id}-${ticket.created_at}`
   };
 
-  const handleSendEmail = () => {
-    // Simulate sending email
-    setTimeout(() => {
-      setEmailSent(true);
-    }, 1000);
+  const handleDownloadPDF = async () => {
+    const input = document.getElementById('ticket-content');
+    if (!input) return;
+
+    try {
+      // Improve html2canvas capture options
+      const canvas = await html2canvas(input, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: true,
+        backgroundColor: '#ffffff',
+        scrollY: -window.scrollY
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`ticket-${ticketDetails.id}.pdf`);
+    } catch (err) {
+      console.error("PDF Download failed", err);
+      alert("Failed to download PDF");
+    }
   };
-  const handleSendSMS = () => {
-    // Simulate sending SMS
-    setTimeout(() => {
-      setSmsSent(true);
-    }, 1000);
+
+  const handleSendEmail = async () => {
+    try {
+      await axiosInstance.post(`/bookings/${ticket.id}/email_ticket/`);
+      setEmailSent(true);
+      setTimeout(() => setEmailSent(false), 3000); // Reset after 3s
+    } catch (err) {
+      console.error("Email send failed", err);
+      alert("Failed to send email. Please try again.");
+    }
+  };
+
+  const handleWhatsAppShare = () => {
+    const text = `Check out my ticket for ${ticketDetails.eventTitle}!`;
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
   };
   return <div className="container mx-auto px-4 py-8">
     <div className="max-w-3xl mx-auto">
@@ -76,7 +109,7 @@ const TicketConfirmationPage = () => {
           Your tickets have been successfully purchased.
         </p>
       </div>
-      <div className="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+      <div id="ticket-content" className="bg-white rounded-lg shadow-md overflow-hidden mb-8">
         {/* Ticket Header */}
         <div className="bg-indigo-600 text-white p-6">
           <h2 className="text-2xl font-bold">{ticketDetails.eventTitle}</h2>
@@ -143,7 +176,7 @@ const TicketConfirmationPage = () => {
             {/* Right Column - QR Code */}
             <div className="flex flex-col items-center justify-center">
               <div className="mb-4 p-4 bg-white border border-gray-200 rounded-md">
-                <QRCodeSVG value={ticketDetails.qrValue} size={180} level="H" includeMargin={true} />
+                <QRCodeCanvas value={ticketDetails.qrValue} size={180} level="H" includeMargin={true} />
               </div>
               <p className="text-sm text-gray-500 text-center mb-4">
                 Present this QR code at the event entrance for validation
@@ -156,7 +189,7 @@ const TicketConfirmationPage = () => {
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
         <h3 className="text-lg font-semibold mb-4">Get Your Ticket</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <button className="flex items-center justify-center bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700">
+          <button onClick={handleDownloadPDF} className="flex items-center justify-center bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700">
             <DownloadIcon className="h-5 w-5 mr-2" />
             Download PDF Ticket
           </button>
@@ -170,6 +203,7 @@ const TicketConfirmationPage = () => {
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
         <h3 className="text-lg font-semibold mb-4">Send Ticket</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
           <button className={`flex items-center justify-center py-3 px-4 rounded-md ${emailSent ? 'bg-green-100 text-green-800 cursor-default' : 'bg-blue-600 text-white hover:bg-blue-700'}`} onClick={handleSendEmail} disabled={emailSent}>
             {emailSent ? <>
               <CheckCircleIcon className="h-5 w-5 mr-2" />
@@ -179,14 +213,9 @@ const TicketConfirmationPage = () => {
               Send via Email
             </>}
           </button>
-          <button className={`flex items-center justify-center py-3 px-4 rounded-md ${smsSent ? 'bg-green-100 text-green-800 cursor-default' : 'bg-gray-800 text-white hover:bg-gray-900'}`} onClick={handleSendSMS} disabled={smsSent}>
-            {smsSent ? <>
-              <CheckCircleIcon className="h-5 w-5 mr-2" />
-              SMS Sent
-            </> : <>
-              <PhoneIcon className="h-5 w-5 mr-2" />
-              Send via SMS
-            </>}
+          <button className="flex items-center justify-center py-3 px-4 rounded-md bg-green-500 text-white hover:bg-green-600" onClick={handleWhatsAppShare}>
+            <ShareIcon className="h-5 w-5 mr-2" />
+            Share via WhatsApp
           </button>
         </div>
       </div>
