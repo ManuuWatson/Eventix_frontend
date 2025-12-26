@@ -197,9 +197,12 @@ const EventDetailsPage = () => {
                         <span className="text-indigo-600 font-bold text-lg">KES {ticket.ticket_price}</span>
                       </div>
                       <p className="text-sm text-gray-600">
-                        {ticket.ticket_quantity !== undefined
-                          ? `Available: ${ticket.ticket_quantity}`
-                          : "Available"}
+                        {ticket.ticket_quantity === null
+                          ? "Unlimited"
+                          : ticket.ticket_quantity === 0
+                            ? <span className="text-red-500 font-medium">Sold Out</span>
+                            : `Available: ${ticket.ticket_quantity}`
+                        }
                       </p>
                     </div>
                   ))

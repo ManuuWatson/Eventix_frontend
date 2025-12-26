@@ -7,8 +7,8 @@ import axiosInstance from "../../api/axiosInstance";
 type TicketType = {
   id: string;
   ticket_name: string;
-  ticket_price: number;
-  ticket_quantity?: number;
+  ticket_price: number | string;
+  ticket_quantity?: number | string;
 };
 
 const HostEventForm: React.FC = () => {
@@ -29,9 +29,9 @@ const HostEventForm: React.FC = () => {
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([
     {
       id: `new-${Date.now()}`,
-      ticket_name: "Standard",
-      ticket_price: 0,
-      ticket_quantity: 0,
+      ticket_name: "",
+      ticket_price: "",
+      ticket_quantity: "",
     },
   ]);
 
@@ -64,8 +64,8 @@ const HostEventForm: React.FC = () => {
             event.ticket_types.map((t: any, i: number) => ({
               id: `existing-${i}`,
               ticket_name: t.ticket_name,
-              ticket_price: Number(t.ticket_price),
-              ticket_quantity: t.ticket_quantity ?? 0,
+              ticket_price: t.ticket_price,
+              ticket_quantity: t.ticket_quantity ?? "", // Use empty string for unlimited
             }))
           );
         }
@@ -99,10 +99,7 @@ const HostEventForm: React.FC = () => {
         i === index
           ? {
             ...ticket,
-            [field]:
-              field === "ticket_price" || field === "ticket_quantity"
-                ? Number(value)
-                : String(value),
+            [field]: value,
           }
           : ticket
       )
@@ -115,8 +112,8 @@ const HostEventForm: React.FC = () => {
       {
         id: `new-${Date.now()}`,
         ticket_name: "",
-        ticket_price: 0,
-        ticket_quantity: 0,
+        ticket_price: "",
+        ticket_quantity: "",
       },
     ]);
 
@@ -140,10 +137,18 @@ const HostEventForm: React.FC = () => {
     ticketTypes.forEach((t, i) => {
       if (!t.ticket_name.trim())
         newErrors[`ticket-${i}-name`] = "Ticket name is required";
-      if (t.ticket_price < 0)
+
+      const price = Number(t.ticket_price);
+      if (t.ticket_price === "" || isNaN(price) || price < 0)
         newErrors[`ticket-${i}-price`] = "Price must be >= 0";
-      if ((t.ticket_quantity ?? 0) < 0)
-        newErrors[`ticket-${i}-quantity`] = "Quantity must be >= 0";
+
+      // For quantity: empty string is valid (unlimited). Only number < 0 is invalid.
+      if (t.ticket_quantity !== "") {
+        const qty = Number(t.ticket_quantity);
+        if (isNaN(qty) || qty < 0) {
+          newErrors[`ticket-${i}-quantity`] = "Quantity must be >= 0";
+        }
+      }
     });
 
     setErrors(newErrors);
@@ -174,7 +179,8 @@ const HostEventForm: React.FC = () => {
       const backendTickets = ticketTypes.map((t) => ({
         ticket_name: t.ticket_name,
         ticket_price: String(t.ticket_price),
-        ticket_quantity: Number(t.ticket_quantity) || 0,
+        // If empty string, send null for unlimited
+        ticket_quantity: t.ticket_quantity === "" ? null : Number(t.ticket_quantity),
       }));
 
       formPayload.append("ticket_types", JSON.stringify(backendTickets));
@@ -229,7 +235,7 @@ const HostEventForm: React.FC = () => {
           {(["name", "description", "date", "location"] as const).map((field) => (
             <div key={field}>
               <label className="font-medium">
-                {field.charAt(0).toUpperCase() + field.slice(1)}*
+                {field === "name" ? "Event Name" : field.charAt(0).toUpperCase() + field.slice(1)}*
               </label>
               {field === "description" ? (
                 <textarea
@@ -295,8 +301,8 @@ const HostEventForm: React.FC = () => {
                       handleTicketChange(index, "ticket_name", e.target.value)
                     }
                     className={`px-3 py-2 border rounded ${errors[`ticket-${index}-name`]
-                        ? "border-red-500"
-                        : "border-gray-300"
+                      ? "border-red-500"
+                      : "border-gray-300"
                       }`}
                   />
                   {errors[`ticket-${index}-name`] && (
@@ -314,8 +320,8 @@ const HostEventForm: React.FC = () => {
                       handleTicketChange(index, "ticket_price", e.target.value)
                     }
                     className={`px-3 py-2 border rounded ${errors[`ticket-${index}-price`]
-                        ? "border-red-500"
-                        : "border-gray-300"
+                      ? "border-red-500"
+                      : "border-gray-300"
                       }`}
                   />
                   {errors[`ticket-${index}-price`] && (
@@ -325,7 +331,7 @@ const HostEventForm: React.FC = () => {
 
                 {/* Ticket Number */}
                 <div className="w-full md:w-32 flex flex-col">
-                  <label className="font-medium mb-1">Ticket Number</label>
+                  <label className="font-medium mb-1">Ticket Number (Optional)</label>
                   <input
                     type="number"
                     value={ticket.ticket_quantity ?? ""}
@@ -333,8 +339,8 @@ const HostEventForm: React.FC = () => {
                       handleTicketChange(index, "ticket_quantity", e.target.value)
                     }
                     className={`px-3 py-2 border rounded ${errors[`ticket-${index}-quantity`]
-                        ? "border-red-500"
-                        : "border-gray-300"
+                      ? "border-red-500"
+                      : "border-gray-300"
                       }`}
                   />
                   {errors[`ticket-${index}-quantity`] && (
@@ -349,7 +355,7 @@ const HostEventForm: React.FC = () => {
                   <label className="font-medium mb-1">Total Amount</label>
                   <input
                     type="text"
-                    value={(ticket.ticket_price * (ticket.ticket_quantity ?? 0)).toFixed(2)}
+                    value={(Number(ticket.ticket_price) * (Number(ticket.ticket_quantity) || 0)).toFixed(2)}
                     disabled
                     className="px-3 py-2 border rounded bg-gray-100 cursor-not-allowed"
                   />
