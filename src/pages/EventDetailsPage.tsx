@@ -77,20 +77,44 @@ const EventDetailsPage = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
 
-        {/* HEADER */}
-        <div className="relative h-80 bg-gray-900">
+        {/* HEADER - Cinematic Style */}
+        <div className="relative w-full h-[500px] bg-gray-950 overflow-hidden group">
           {event.posterUrl ? (
-            <img src={event.posterUrl} alt={event.name} className="w-full h-full object-cover opacity-70" />
+            <>
+              {/* 1. Blurred Background for Ambiance */}
+              <div
+                className="absolute inset-0 bg-cover bg-center blur-2xl opacity-50 scale-110 transition-transform duration-1000 group-hover:scale-105"
+                style={{ backgroundImage: `url(${event.posterUrl})` }}
+              />
+
+              {/* 2. Sharp Centered Poster */}
+              <div className="absolute inset-0 flex items-center justify-center py-6 px-4">
+                <img
+                  src={event.posterUrl}
+                  alt={event.name}
+                  className="max-h-full max-w-full object-contain relative z-10 shadow-2xl drop-shadow-2xl rounded-sm transition-transform duration-500 hover:scale-[1.01]"
+                />
+              </div>
+            </>
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-500">
+            <div className="w-full h-full flex items-center justify-center text-gray-500 bg-gray-900">
               <span className="text-lg">No Poster Available</span>
             </div>
           )}
-          <div className="absolute bottom-0 left-0 p-6 text-white">
-            <h1 className="text-4xl font-bold mb-2">{event.name}</h1>
-            <div className="flex items-center text-gray-300">
-              <CalendarIcon className="h-5 w-5 mr-2" />
-              <span>{formattedDate} • {formattedTime}</span>
+
+          {/* 3. Gradient Overlay for Readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/60 to-transparent z-20 pointer-events-none" />
+
+          {/* 4. Text Content */}
+          <div className="absolute bottom-0 left-0 p-8 z-30 text-white w-full max-w-4xl">
+            <h1 className="text-4xl md:text-5xl font-black mb-3 tracking-tight drop-shadow-lg leading-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-200">
+              {event.name}
+            </h1>
+            <div className="flex items-center text-gray-100 text-lg font-medium drop-shadow-md">
+              <div className="bg-white/10 backdrop-blur-md p-2 rounded-lg flex items-center border border-white/20">
+                <CalendarIcon className="h-5 w-5 mr-2 text-indigo-300" />
+                <span>{formattedDate} • {formattedTime}</span>
+              </div>
             </div>
           </div>
         </div>
