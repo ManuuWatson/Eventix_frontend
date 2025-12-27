@@ -16,10 +16,13 @@ import { EventProvider } from "./context/EventContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import LoadingSpinner from "./components/layout/LoadingSpinner";
 
+import ScrollToTop from "./components/common/ScrollToTop";
+
 // ✅ App Layout: Provides consistent header/footer wrapper for most pages
 const AppLayout = () => {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
+      <ScrollToTop />
       <Header />
       <main className="flex-grow">
         {/* Outlet renders the matched child route component */}

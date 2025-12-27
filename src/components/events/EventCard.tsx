@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Heart, Share2, MessageCircle, Mail, Link as LinkIcon, X } from "lucide-react";
 import axiosInstance from "../../api/axiosInstance";
 import { useAuth } from "../../context/AuthContext";
@@ -35,6 +35,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onLikeUpdate }) => {
   } = event;
 
   const { token } = useAuth();
+  const navigate = useNavigate();
 
   const [likeCount, setLikeCount] = useState<number>(total_likes || 0);
   const [isLiked, setIsLiked] = useState<boolean>(
@@ -53,7 +54,12 @@ const EventCard: React.FC<EventCardProps> = ({ event, onLikeUpdate }) => {
     );
   }, [total_likes, liked_by_user, event_id]);
 
-  const handleLike = async () => {
+  const handleCardClick = () => {
+    navigate(`/events/${event_id}`);
+  };
+
+  const handleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!token) {
       alert("You should login to like this event.");
       return;
@@ -93,7 +99,8 @@ const EventCard: React.FC<EventCardProps> = ({ event, onLikeUpdate }) => {
     }
   };
 
-  const handleShare = async () => {
+  const handleShare = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     const shareData = {
       title: name,
       text: `Check out ${name} at ${location}!`,
@@ -111,7 +118,8 @@ const EventCard: React.FC<EventCardProps> = ({ event, onLikeUpdate }) => {
     }
   };
 
-  const copyLink = async () => {
+  const copyLink = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     try {
       await navigator.clipboard.writeText(`${window.location.origin}/events/${event_id}`);
       alert("Link copied!");
@@ -121,13 +129,15 @@ const EventCard: React.FC<EventCardProps> = ({ event, onLikeUpdate }) => {
     }
   };
 
-  const shareWhatsApp = () => {
+  const shareWhatsApp = (e: React.MouseEvent) => {
+    e.stopPropagation();
     const text = `Check out ${name} at ${location}! ${window.location.origin}/events/${event_id}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
     setShowShareModal(false);
   };
 
-  const shareEmail = () => {
+  const shareEmail = (e: React.MouseEvent) => {
+    e.stopPropagation();
     const subject = `Check out ${name}`;
     const body = `Hey, take a look at this event: ${name} at ${location}.\n\nLink: ${window.location.origin}/events/${event_id}`;
     window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
@@ -147,7 +157,10 @@ const EventCard: React.FC<EventCardProps> = ({ event, onLikeUpdate }) => {
   const handleImageError = () => setCurrentImageSrc(FALLBACK_IMAGE_PATH);
 
   return (
-    <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden w-full max-w-sm mx-auto flex flex-col h-full relative">
+    <div
+      onClick={handleCardClick}
+      className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden w-full max-w-sm mx-auto flex flex-col h-full relative cursor-pointer group"
+    >
       {/* Poster */}
       <div className="relative w-full overflow-hidden rounded-t-xl bg-gray-100 flex-shrink-0">
         <img
