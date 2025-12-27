@@ -8,7 +8,7 @@ import {
   EyeOffIcon,
   Loader2Icon,
 } from "lucide-react";
-import axios from "axios";
+import axiosInstance from "../../api/axiosInstance";
 import { useAuth } from "../../context/AuthContext";
 
 const LoginPage: React.FC = () => {
@@ -42,14 +42,10 @@ const LoginPage: React.FC = () => {
     try {
       setIsLoading(true);
 
-      const response = await axios.post(
-        "https://eventix-backend2.onrender.com/api/users/login/",
-        {
-          email: form.email.trim(),
-          password: form.password.trim(),
-        },
-        { headers: { "Content-Type": "application/json" } }
-      );
+      const response = await axiosInstance.post("/users/login/", {
+        email: form.email.trim(),
+        password: form.password.trim(),
+      });
 
       if (response.status === 200 || response.status === 201) {
         const { user: loggedUser, token } = response.data;

@@ -8,7 +8,7 @@ import {
     Loader2Icon,
     UserIcon,
 } from "lucide-react";
-import axios from "axios";
+import axiosInstance from "../../api/axiosInstance";
 import { useAuth } from "../../context/AuthContext";
 
 const CheckoutAuthPage: React.FC = () => {
@@ -51,13 +51,12 @@ const CheckoutAuthPage: React.FC = () => {
 
         try {
             setIsLoading(true);
-            const response = await axios.post(
-                "https://eventix-backend2.onrender.com/api/users/login/",
+            const response = await axiosInstance.post(
+                "/users/login/",
                 {
                     email: form.email.trim(),
                     password: form.password.trim(),
-                },
-                { headers: { "Content-Type": "application/json" } }
+                }
             );
 
             if (response.status === 200 || response.status === 201) {
@@ -95,15 +94,14 @@ const CheckoutAuthPage: React.FC = () => {
 
         try {
             setIsLoading(true);
-            const response = await axios.post(
-                "https://eventix-backend2.onrender.com/api/users/register/",
+            const response = await axiosInstance.post(
+                "/users/register/",
                 {
                     full_name: form.full_name,
                     email: form.email,
                     password: form.password,
                     user_type: form.user_type,
-                },
-                { headers: { "Content-Type": "application/json" } }
+                }
             );
 
             if (response.status === 201 || response.status === 200) {

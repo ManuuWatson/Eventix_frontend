@@ -31,9 +31,17 @@ const EventDetailsPage = () => {
     }
   }, [location.state]);
 
+  const selectedTicketData = event?.ticket_types?.find((t: any) => t.id === selectedTicket);
+  const isSoldOut = selectedTicketData?.ticket_quantity === 0;
+
   const handleProceedToCheckout = () => {
     if (!selectedTicket) {
       alert("Please select a ticket type");
+      return;
+    }
+
+    if (isSoldOut) {
+      alert("This ticket is sold out");
       return;
     }
 
@@ -178,7 +186,7 @@ const EventDetailsPage = () => {
 
               <div className="flex items-center mb-4">
                 <TicketIcon className="h-6 w-6 text-indigo-600 mr-2" />
-                <h2 className="text-2xl font-semibold">Get Tickets</h2>
+                <h2 className="text-2xl font-semibold">Choose Your Ticket</h2>
               </div>
 
               <div className="space-y-4 mb-6">
@@ -215,10 +223,10 @@ const EventDetailsPage = () => {
 
               <button
                 className="w-full bg-indigo-600 text-white py-3 rounded-md font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors"
-                disabled={!selectedTicket}
+                disabled={!selectedTicket || isSoldOut}
                 onClick={handleProceedToCheckout}
               >
-                Proceed to Checkout
+                {isSoldOut ? "Sold Out" : "Proceed to Checkout"}
               </button>
 
             </div>

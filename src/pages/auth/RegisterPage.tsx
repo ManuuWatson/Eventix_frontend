@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { UserIcon, MailIcon, LockIcon, EyeIcon, EyeOffIcon } from "lucide-react";
-import axios from "axios";
+import axiosInstance from "../../api/axiosInstance";
 import { useAuth } from "../../context/AuthContext";
 
 const RegisterPage: React.FC = () => {
@@ -49,30 +49,22 @@ const RegisterPage: React.FC = () => {
     try {
       setIsLoading(true);
 
-      const response = await axios.post(
-        "https://eventix-backend2.onrender.com/api/users/register/",
-        {
-          full_name: form.full_name,
-          email: form.email,
-          password: form.password,
-          user_type: form.user_type,
-        },
-        { headers: { "Content-Type": "application/json" } }
-      );
+      const response = await axiosInstance.post("/users/register/", {
+        full_name: form.full_name,
+        email: form.email,
+        password: form.password,
+        user_type: form.user_type,
+      });
 
       if (response.status === 201 || response.status === 200) {
         setSuccessMessage("🎉 Registration successful! Logging you in...");
 
         // Auto-login
         try {
-          const loginResp = await axios.post(
-            "https://eventix-backend2.onrender.com/api/users/login/",
-            {
-              email: form.email,
-              password: form.password
-            },
-            { headers: { "Content-Type": "application/json" } }
-          );
+          const loginResp = await axiosInstance.post("/users/login/", {
+            email: form.email,
+            password: form.password
+          });
 
           if (loginResp.data.token) {
             login(loginResp.data.user, loginResp.data.token);

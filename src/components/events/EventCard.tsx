@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Heart, Share2 } from "lucide-react";
+import { Heart, Share2, MessageCircle, Mail, Link as LinkIcon, X } from "lucide-react";
 import axiosInstance from "../../api/axiosInstance";
 import { useAuth } from "../../context/AuthContext";
 
@@ -41,6 +41,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onLikeUpdate }) => {
     liked_by_user || false
   );
   const [isLiking, setIsLiking] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const baseUrl = (import.meta as any).env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
@@ -93,14 +94,44 @@ const EventCard: React.FC<EventCardProps> = ({ event, onLikeUpdate }) => {
   };
 
   const handleShare = async () => {
-    try {
-      await navigator.clipboard.writeText(
-        `${window.location.origin}/events/${event_id}`
-      );
-      alert("Event link copied!");
-    } catch (err) {
-      console.error("Failed to copy:", err);
+    const shareData = {
+      title: name,
+      text: `Check out ${name} at ${location}!`,
+      url: `${window.location.origin}/events/${event_id}`,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.error("Error sharing:", err);
+      }
+    } else {
+      setShowShareModal(true);
     }
+  };
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/events/${event_id}`);
+      alert("Link copied!");
+      setShowShareModal(false);
+    } catch (err) {
+      console.error("Failed to copy", err);
+    }
+  };
+
+  const shareWhatsApp = () => {
+    const text = `Check out ${name} at ${location}! ${window.location.origin}/events/${event_id}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+    setShowShareModal(false);
+  };
+
+  const shareEmail = () => {
+    const subject = `Check out ${name}`;
+    const body = `Hey, take a look at this event: ${name} at ${location}.\n\nLink: ${window.location.origin}/events/${event_id}`;
+    window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+    setShowShareModal(false);
   };
 
   const initialImageSrc =
@@ -116,9 +147,9 @@ const EventCard: React.FC<EventCardProps> = ({ event, onLikeUpdate }) => {
   const handleImageError = () => setCurrentImageSrc(FALLBACK_IMAGE_PATH);
 
   return (
-    <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden w-full max-w-sm mx-auto">
+    <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden w-full max-w-sm mx-auto flex flex-col h-full relative">
       {/* Poster */}
-      <div className="relative w-full overflow-hidden rounded-t-xl bg-gray-100">
+      <div className="relative w-full overflow-hidden rounded-t-xl bg-gray-100 flex-shrink-0">
         <img
           src={currentImageSrc}
           alt={name}
@@ -136,13 +167,13 @@ const EventCard: React.FC<EventCardProps> = ({ event, onLikeUpdate }) => {
       </div>
 
       {/* Info */}
-      <div className="p-3 flex flex-col">
+      <div className="p-3 flex flex-col flex-1">
         <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-1">{name}</h3>
         <p className="text-sm text-gray-600 line-clamp-2 mb-3">
           {description || "No description provided."}
         </p>
 
-        <div className="text-xs text-gray-500 flex justify-between mb-2">
+        <div className="text-xs text-gray-500 flex justify-between mb-auto">
           <span>
             <strong>Date:</strong> {new Date(date).toDateString().slice(0, 10)}
           </span>
@@ -151,7 +182,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onLikeUpdate }) => {
           </span>
         </div>
 
-        <div className="flex justify-between items-center mt-2 border-t border-gray-100 pt-2">
+        <div className="flex justify-between items-center mt-3 border-t border-gray-100 pt-2">
           <button
             onClick={handleLike}
             disabled={isLiking}
@@ -178,6 +209,52 @@ const EventCard: React.FC<EventCardProps> = ({ event, onLikeUpdate }) => {
           Buy Ticket
         </Link>
       </div>
+
+      {/* Share Modal Overlay */}
+      {showShareModal && (
+        <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-50 flex flex-col justify-center items-center p-6 text-center animate-in fade-in duration-200">
+          <button
+            onClick={() => setShowShareModal(false)}
+            className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+          >
+            <X className="h-5 w-5" />
+          </button>
+
+          <h4 className="text-lg font-bold text-gray-900 mb-4">Share Event</h4>
+
+          <div className="grid grid-cols-3 gap-4 w-full">
+            <button
+              onClick={shareWhatsApp}
+              className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-green-50 text-gray-600 hover:text-green-600 transition"
+            >
+              <div className="bg-green-100 p-2 rounded-full">
+                <MessageCircle className="h-5 w-5 text-green-600" />
+              </div>
+              <span className="text-xs font-medium">WhatsApp</span>
+            </button>
+
+            <button
+              onClick={shareEmail}
+              className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-blue-50 text-gray-600 hover:text-blue-600 transition"
+            >
+              <div className="bg-blue-100 p-2 rounded-full">
+                <Mail className="h-5 w-5 text-blue-600" />
+              </div>
+              <span className="text-xs font-medium">Email</span>
+            </button>
+
+            <button
+              onClick={copyLink}
+              className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition"
+            >
+              <div className="bg-gray-100 p-2 rounded-full">
+                <LinkIcon className="h-5 w-5 text-gray-600" />
+              </div>
+              <span className="text-xs font-medium">Copy Link</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
