@@ -16,7 +16,12 @@ import {
 import HostEventForm from "./HostEventForm";
 import HostEventsList from "./HostEventsList";
 import HostSalesDashboard from "./HostSalesDashboard";
+import HostEventDetails from "./HostEventDetails";
 import HostSettings from "./HostSettings";
+
+// ... existing code ...
+
+
 
 // ✅ SummaryCard Component
 const SummaryCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode }> = ({
@@ -249,8 +254,8 @@ const HostDashboard: React.FC = () => {
                         <p className="text-sm text-gray-600 mb-4">{event.location}</p>
                         <span
                           className={`px-3 py-1 text-xs font-semibold rounded-full ${event.status === "Approved"
-                              ? "bg-green-200 text-green-800"
-                              : "bg-yellow-200 text-yellow-800"
+                            ? "bg-green-200 text-green-800"
+                            : "bg-yellow-200 text-yellow-800"
                             }`}
                         >
                           {event.status}
@@ -268,6 +273,7 @@ const HostDashboard: React.FC = () => {
           />
           <Route path="events/new" element={<HostEventForm />} />
           <Route path="events/edit/:eventId" element={<HostEventForm />} />
+          <Route path="events/:eventId/details" element={<HostEventDetails />} />
           <Route path="events/*" element={<HostEventsList />} />
           <Route path="sales" element={<HostSalesDashboard />} />
           <Route path="settings" element={<HostSettings />} />

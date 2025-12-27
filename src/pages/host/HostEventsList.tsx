@@ -103,6 +103,7 @@ const HostEventsList: React.FC = () => {
 
   const handleEdit = (id: number) => navigate(`/host/dashboard/events/edit/${id}`);
   const handleView = (id: number) => navigate(`/events/${id}`);
+  const handleDetails = (id: number) => navigate(`/host/dashboard/events/${id}/details`);
   const handleCreate = () => navigate("/host/dashboard/events/new");
 
   const formatDateTime = (dateString: string) => {
@@ -250,20 +251,29 @@ const HostEventsList: React.FC = () => {
                         <td className="px-6 py-4 text-right text-sm">
                           <div className="flex justify-end space-x-3">
                             <button
+                              onClick={() => handleDetails((event.event_id || event.id)!)}
+                              className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded text-xs font-semibold transition-colors whitespace-nowrap"
+                            >
+                              View Details
+                            </button>
+                            <button
                               onClick={() => handleView((event.event_id || event.id)!)}
                               className="text-blue-600 hover:text-blue-800"
+                              title="Public View"
                             >
                               <EyeIcon className="h-5 w-5" />
                             </button>
                             <button
                               onClick={() => handleEdit((event.event_id || event.id)!)}
                               className="text-indigo-600 hover:text-indigo-800"
+                              title="Edit"
                             >
                               <EditIcon className="h-5 w-5" />
                             </button>
                             <button
                               onClick={() => handleDeleteClick((event.event_id || event.id)!)}
                               className="text-red-600 hover:text-red-800"
+                              title="Delete"
                             >
                               <TrashIcon className="h-5 w-5" />
                             </button>
@@ -317,20 +327,29 @@ const HostEventsList: React.FC = () => {
                       </div>
                       <div className="flex justify-end space-x-3 pt-2">
                         <button
+                          onClick={() => handleDetails((event.event_id || event.id)!)}
+                          className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded text-xs font-semibold transition-colors whitespace-nowrap"
+                        >
+                          View Details
+                        </button>
+                        <button
                           onClick={() => handleView((event.event_id || event.id)!)}
                           className="text-blue-600 hover:text-blue-800"
+                          title="View"
                         >
                           <EyeIcon className="h-5 w-5" />
                         </button>
                         <button
                           onClick={() => handleEdit((event.event_id || event.id)!)}
                           className="text-indigo-600 hover:text-indigo-800"
+                          title="Edit"
                         >
                           <EditIcon className="h-5 w-5" />
                         </button>
                         <button
                           onClick={() => handleDeleteClick((event.event_id || event.id)!)}
                           className="text-red-600 hover:text-red-800"
+                          title="Delete"
                         >
                           <TrashIcon className="h-5 w-5" />
                         </button>
