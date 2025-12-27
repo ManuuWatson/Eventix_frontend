@@ -71,9 +71,9 @@ const HostDashboard: React.FC = () => {
       acc +
       (Array.isArray(event.ticket_types)
         ? event.ticket_types.reduce(
-            (sum, ticket) => sum + ticket.price * (ticket.sold || ticket.quantity || 0),
-            0
-          )
+          (sum, ticket) => sum + ticket.price * (ticket.sold || ticket.quantity || 0),
+          0
+        )
         : 0),
     0
   );
@@ -104,9 +104,8 @@ const HostDashboard: React.FC = () => {
   }) => (
     <Link
       to={to}
-      className={`flex items-center px-4 py-3 rounded-md text-sm md:text-base transition duration-150 ease-in-out ${
-        isActive(to) ? "bg-indigo-900 shadow-md" : "hover:bg-indigo-700"
-      }`}
+      className={`flex items-center px-4 py-3 rounded-md text-sm md:text-base transition duration-150 ease-in-out ${isActive(to) ? "bg-indigo-900 shadow-md" : "hover:bg-indigo-700"
+        }`}
       onClick={() => setIsMobileMenuOpen(false)}
     >
       <Icon className="h-5 w-5 mr-3" />
@@ -249,11 +248,10 @@ const HostDashboard: React.FC = () => {
                         </p>
                         <p className="text-sm text-gray-600 mb-4">{event.location}</p>
                         <span
-                          className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                            event.status === "Approved"
+                          className={`px-3 py-1 text-xs font-semibold rounded-full ${event.status === "Approved"
                               ? "bg-green-200 text-green-800"
                               : "bg-yellow-200 text-yellow-800"
-                          }`}
+                            }`}
                         >
                           {event.status}
                         </span>
@@ -269,6 +267,7 @@ const HostDashboard: React.FC = () => {
             }
           />
           <Route path="events/new" element={<HostEventForm />} />
+          <Route path="events/edit/:eventId" element={<HostEventForm />} />
           <Route path="events/*" element={<HostEventsList />} />
           <Route path="sales" element={<HostSalesDashboard />} />
           <Route path="settings" element={<HostSettings />} />

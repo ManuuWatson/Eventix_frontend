@@ -20,7 +20,8 @@ interface TicketType {
 }
 
 interface EventData {
-  id: number;
+  id?: number;
+  event_id?: number;
   name: string;
   description: string;
   poster?: string;
@@ -92,7 +93,7 @@ const HostEventsList: React.FC = () => {
   const confirmDelete = async (id: number) => {
     try {
       await axiosInstance.delete(`/events/${id}/`);
-      setEvents((prev) => prev.filter((e) => e.id !== id));
+      setEvents((prev) => prev.filter((e) => (e.event_id || e.id) !== id));
       setDeleteConfirmation(null);
     } catch (err) {
       console.error("Error deleting event:", err);
@@ -100,8 +101,8 @@ const HostEventsList: React.FC = () => {
     }
   };
 
-  const handleEdit = (id: number) => navigate(`/host/events/edit/${id}`);
-  const handleView = (id: number) => navigate(`/host/events/${id}`);
+  const handleEdit = (id: number) => navigate(`/host/dashboard/events/edit/${id}`);
+  const handleView = (id: number) => navigate(`/events/${id}`);
   const handleCreate = () => navigate("/host/dashboard/events/new");
 
   const formatDateTime = (dateString: string) => {
@@ -157,11 +158,10 @@ const HostEventsList: React.FC = () => {
             <button
               key={type}
               onClick={() => setFilter(type as "all" | "upcoming" | "past")}
-              className={`px-4 py-2 rounded-md text-sm sm:text-base transition ${
-                filter === type
-                  ? "bg-indigo-100 text-indigo-700 font-semibold"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
+              className={`px-4 py-2 rounded-md text-sm sm:text-base transition ${filter === type
+                ? "bg-indigo-100 text-indigo-700 font-semibold"
+                : "text-gray-600 hover:bg-gray-100"
+                }`}
             >
               {type === "all"
                 ? "All Events"
@@ -209,7 +209,7 @@ const HostEventsList: React.FC = () => {
                   {filteredEvents.map((event) => {
                     const { datePart, timePart } = formatDateTime(event.date);
                     return (
-                      <tr key={event.id} className="hover:bg-gray-50">
+                      <tr key={event.event_id || event.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 flex items-center space-x-4">
                           <img
                             src={getPosterImage(event.poster_url || event.poster)}
@@ -239,11 +239,10 @@ const HostEventsList: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 text-sm">
                           <span
-                            className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                              event.is_approved
-                                ? "bg-green-100 text-green-700"
-                                : "bg-yellow-100 text-yellow-700"
-                            }`}
+                            className={`px-3 py-1 rounded-full text-xs font-semibold ${event.is_approved
+                              ? "bg-green-100 text-green-700"
+                              : "bg-yellow-100 text-yellow-700"
+                              }`}
                           >
                             {event.is_approved ? "Approved" : "Pending"}
                           </span>
@@ -251,19 +250,19 @@ const HostEventsList: React.FC = () => {
                         <td className="px-6 py-4 text-right text-sm">
                           <div className="flex justify-end space-x-3">
                             <button
-                              onClick={() => handleView(event.id)}
+                              onClick={() => handleView((event.event_id || event.id)!)}
                               className="text-blue-600 hover:text-blue-800"
                             >
                               <EyeIcon className="h-5 w-5" />
                             </button>
                             <button
-                              onClick={() => handleEdit(event.id)}
+                              onClick={() => handleEdit((event.event_id || event.id)!)}
                               className="text-indigo-600 hover:text-indigo-800"
                             >
                               <EditIcon className="h-5 w-5" />
                             </button>
                             <button
-                              onClick={() => handleDeleteClick(event.id)}
+                              onClick={() => handleDeleteClick((event.event_id || event.id)!)}
                               className="text-red-600 hover:text-red-800"
                             >
                               <TrashIcon className="h-5 w-5" />
@@ -283,7 +282,7 @@ const HostEventsList: React.FC = () => {
                 const { datePart, timePart } = formatDateTime(event.date);
                 return (
                   <div
-                    key={event.id}
+                    key={event.event_id || event.id}
                     className="border rounded-lg shadow-sm overflow-hidden bg-white"
                   >
                     <img
@@ -308,30 +307,29 @@ const HostEventsList: React.FC = () => {
                       </div>
                       <div>
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                            event.is_approved
-                              ? "bg-green-100 text-green-700"
-                              : "bg-yellow-100 text-yellow-700"
-                          }`}
+                          className={`px-3 py-1 rounded-full text-xs font-semibold ${event.is_approved
+                            ? "bg-green-100 text-green-700"
+                            : "bg-yellow-100 text-yellow-700"
+                            }`}
                         >
                           {event.is_approved ? "Approved" : "Pending"}
                         </span>
                       </div>
                       <div className="flex justify-end space-x-3 pt-2">
                         <button
-                          onClick={() => handleView(event.id)}
+                          onClick={() => handleView((event.event_id || event.id)!)}
                           className="text-blue-600 hover:text-blue-800"
                         >
                           <EyeIcon className="h-5 w-5" />
                         </button>
                         <button
-                          onClick={() => handleEdit(event.id)}
+                          onClick={() => handleEdit((event.event_id || event.id)!)}
                           className="text-indigo-600 hover:text-indigo-800"
                         >
                           <EditIcon className="h-5 w-5" />
                         </button>
                         <button
-                          onClick={() => handleDeleteClick(event.id)}
+                          onClick={() => handleDeleteClick((event.event_id || event.id)!)}
                           className="text-red-600 hover:text-red-800"
                         >
                           <TrashIcon className="h-5 w-5" />
