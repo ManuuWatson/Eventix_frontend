@@ -1,6 +1,6 @@
 // src/pages/EventsPage.tsx
 import { useState, useEffect, useMemo } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { useQuery, UseQueryResult, UseQueryOptions } from "@tanstack/react-query";
 import axiosInstance from "../api/axiosInstance.ts";
 import EventCard from "../components/events/EventCard";
@@ -9,7 +9,6 @@ import { StarIcon, UsersIcon, ShieldCheckIcon, ZapIcon } from "lucide-react";
 
 export type FilterFields = {
   search: string;
-  category: string;
   date: string;
   location: string;
 };
@@ -33,7 +32,6 @@ const EventsPage = () => {
 
   const [filters, setFilters] = useState<FilterFields>({
     search: searchQuery,
-    category: "",
     date: "",
     location: "",
   });
@@ -70,12 +68,11 @@ const EventsPage = () => {
 
         const searchMatch =
           !q || name.includes(q) || description.includes(q) || locationField.includes(q);
-        const categoryMatch = !filters.category || e.category === filters.category;
         const dateMatch = !filters.date || e.date === filters.date;
         const locationMatch =
           !filters.location || locationField.includes(filters.location.toLowerCase());
 
-        return searchMatch && categoryMatch && dateMatch && locationMatch;
+        return searchMatch && dateMatch && locationMatch;
       })
       .sort((a: EventType, b: EventType) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [filters, events]);
@@ -96,11 +93,10 @@ const EventsPage = () => {
 
   // ------------------ CAROUSEL ------------------ //
   const carouselImages = [
-    "https://images.unsplash.com/photo-1515169067865-5387ec356754?auto=format&fit=crop&w=1500&q=80",
-    "https://images.unsplash.com/photo-1507874457470-272b3c8d8ee2?auto=format&fit=crop&w=1500&q=80",
-    "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1500&q=80",
-    "https://images.unsplash.com/photo-1515168833906-d2a3b82b302a?auto=format&fit=crop&w=1500&q=80",
-    "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1500&q=80",
+    "/carousel/event_backgroundimg1.jpg",
+    "/carousel/event_backgroundimg2.jpg",
+    "/carousel/event_backgroundimg3.jpg",
+
   ];
 
   const [currentImage, setCurrentImage] = useState(0);
@@ -108,7 +104,7 @@ const EventsPage = () => {
   useEffect(() => {
     const interval = setInterval(
       () => setCurrentImage((prev) => (prev + 1) % carouselImages.length),
-      4000
+      7000
     );
     return () => clearInterval(interval);
   }, []);
@@ -117,35 +113,51 @@ const EventsPage = () => {
   return (
     <div className="container mx-auto px-4 py-8">
 
-      {/* ================= HERO CAROUSEL ================= */}
-      <section className="relative mb-12 h-[500px] rounded-lg overflow-hidden shadow-lg">
-        <div
-          className="flex w-full h-full transition-transform duration-900 ease-in-out"
-          style={{
-            transform: `translateX(-${currentImage * 100}%)`,
-            width: `${carouselImages.length * 100}%`,
-          }}
-        >
-          {carouselImages.map((image, index) => (
-            <div key={index} className="w-full flex-shrink-0 relative">
-              <img
-                src={image}
-                alt={`Slide ${index + 1}`}
-                className="w-full h-full object-cover object-center"
-              />
-            </div>
-          ))}
-        </div>
+   {/* ================= HERO CAROUSEL ================= */}
+<section className="relative mb-12 h-[520px] md:h-[600px] rounded-xl overflow-hidden shadow-xl">
 
-        <div className="absolute inset-0 bg-black bg-opacity-40 flex flex-col justify-center items-center text-center text-white px-4">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Discover Amazing Events
-          </h1>
-          <p className="text-lg md:text-xl max-w-2xl">
-            Find and book tickets for the best events happening near you.
-          </p>
-        </div>
-      </section>
+  {/* Slides */}
+  {carouselImages.map((image, index) => (
+    <div
+      key={index}
+      className={`absolute inset-0 transition-opacity duration-[1200ms] ease-in-out ${
+        index === currentImage ? "opacity-100 z-10" : "opacity-0 z-0"
+      }`}
+      style={{
+        backgroundImage: `url(${image})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
+      {/* Dark gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+    </div>
+  ))}
+
+  {/* Content */}
+  <div className="relative z-20 h-full flex flex-col justify-center items-center text-center text-white px-6">
+    <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold mb-6 tracking-tight drop-shadow-2xl">
+      Discover{" "}
+      <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
+        Amazing Events
+      </span>
+    </h1>
+
+    <p className="text-lg md:text-2xl max-w-2xl mb-10 text-gray-200 font-medium drop-shadow-lg">
+      Find and book tickets for the best events happening near you.
+    </p>
+
+    <Link
+      to="/register?role=host"
+      className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-10 rounded-full transition duration-300 transform hover:scale-105 shadow-xl"
+    >
+      Host an Event
+    </Link>
+  </div>
+</section>
+
+
 
       {/* ================= FILTER ================= */}
       <EventFilter filters={filters} onFilterChange={handleFilterChange} />
