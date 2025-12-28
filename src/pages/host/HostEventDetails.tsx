@@ -44,7 +44,14 @@ const HostEventDetails: React.FC = () => {
                 setCheckInStatus("success");
                 setCheckInResult(data);
                 setTicketId(""); // Clear input on success
-                // Helper: Refresh event details to update attendee count if desired
+
+                // Optimistic Update: Manually increment attendee count instantly
+                setEvent((prev: any) => ({
+                    ...prev,
+                    attendees_count: (prev?.attendees_count || 0) + 1
+                }));
+
+                // Helper: Refresh event details to ensure consistency (background)
                 fetchEventDetails();
             } else {
                 setCheckInStatus("error");
