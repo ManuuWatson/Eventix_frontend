@@ -1,281 +1,246 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useEvents } from '../../context/EventContext';
 import { useAuth } from '../../context/AuthContext';
+import axiosInstance from '../../api/axiosInstance';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { DollarSignIcon, UsersIcon, TicketIcon, CalendarIcon } from 'lucide-react';
 
-// Mock sales data for demonstration
-const generateMockSalesData = () => {
-  const today = new Date();
-  const data = [];
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(today.getDate() - i);
-    data.push({
-      date: date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric'
-      }),
-      sales: Math.floor(Math.random() * 20) + 5,
-      revenue: (Math.floor(Math.random() * 20) + 5) * 25
-    });
-  }
-  return data;
-};
-
-const generateMockTicketTypeData = (event: any) => {
-  return event.ticket_types.map((type: any) => ({
-    name: type.ticket_name,
-    sold: Math.floor(Math.random() * 50) + 10,
-    revenue: (Math.floor(Math.random() * 50) + 10) * type.ticket_price
-  }));
-};
+interface SalesStats {
+  total_revenue: number;
+  total_tickets: number;
+  avg_price: number;
+  sales_history: any[];
+  recent_buyers: any[];
+  events_breakdown: any[];
+}
 
 const HostSalesDashboard = () => {
-  const {
-    events
-  } = useEvents();
-  const {
-    user
-  } = useAuth();
-  const [selectedEvent, setSelectedEvent] = useState<string>('all');
-  const [dateRange, setDateRange] = useState<string>('week'); // week, month, year
+  const { user } = useAuth();
+  const [stats, setStats] = useState<SalesStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedEventId, setSelectedEventId] = useState<string>('all');
+  const [dateRange, setDateRange] = useState<string>('week'); // Keep UI but logic might be limited
 
-  // Filter events by current host
-  const hostEvents = events.filter(event => event.host_id === user?.id);
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await axiosInstance.get('/events/sales_stats/');
+        setStats(res.data);
+      } catch (err) {
+        console.error("Error fetching sales stats:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchStats();
+  }, []);
 
-  // Get selected event or all events
-  const filteredEvents = selectedEvent === 'all' ? hostEvents : hostEvents.filter(event => event.event_id === Number(selectedEvent));
+  if (loading) return <div className="p-8 text-center text-gray-500">Loading sales data...</div>;
+  if (!stats) return <div className="p-8 text-center text-gray-500">No sales data available.</div>;
 
-  // Generate mock data for charts
-  const salesData = generateMockSalesData();
+  // Filter Logic
+  // If 'all', use global stats. If specific event, calculate from breakdown/buyers.
+  let displayTickets = stats.total_tickets;
+  let displayRevenue = stats.total_revenue;
+  let displayAvgPrice = stats.avg_price;
+  let displayBuyers = stats.recent_buyers;
+  let displayBreakdown = stats.events_breakdown;
 
-  // Calculate totals
-  const totalTickets = filteredEvents.reduce((total) => {
-    return total + Math.floor(Math.random() * 100) + 20; // Mock data
-  }, 0);
+  if (selectedEventId !== 'all') {
+    const evt = stats.events_breakdown.find(e => e.event_id === Number(selectedEventId));
+    if (evt) {
+      displayTickets = evt.sold;
+      displayRevenue = evt.revenue;
+      displayAvgPrice = displayTickets > 0 ? displayRevenue / displayTickets : 0;
+      displayBreakdown = [evt]; // Only show this event
+      // Filter buyers
+      displayBuyers = stats.recent_buyers.filter(b => b.event === evt.title);
+    } else {
+      displayTickets = 0;
+      displayRevenue = 0;
+      displayAvgPrice = 0;
+      displayBuyers = [];
+      displayBreakdown = [];
+    }
+  }
 
-  const totalRevenue = filteredEvents.reduce((total) => {
-    return total + (Math.floor(Math.random() * 1000) + 500); // Mock data
-  }, 0);
+  return (
+    <div>
+      <h1 className="text-2xl font-bold mb-6">Sales & Revenue</h1>
 
-  const averageTicketPrice = totalTickets > 0 ? (totalRevenue / totalTickets).toFixed(2) : 0;
+      <div className="mb-6">
+        <div className="flex flex-wrap gap-4">
+          <div className="flex-1">
+            <label htmlFor="event-select" className="block text-sm font-medium text-gray-700 mb-1">
+              Select Event
+            </label>
+            <select
+              id="event-select"
+              value={selectedEventId}
+              onChange={e => setSelectedEventId(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="all">All Events</option>
+              {stats.events_breakdown.map((event: any) => (
+                <option key={event.event_id} value={event.event_id}>
+                  {event.title}
+                </option>
+              ))}
+            </select>
+          </div>
 
-  return <div>
-    <h1 className="text-2xl font-bold mb-6">Sales Dashboard</h1>
+          <div>
+            <label htmlFor="date-range" className="block text-sm font-medium text-gray-700 mb-1">
+              Date Range
+            </label>
+            <select id="date-range" value={dateRange} onChange={e => setDateRange(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="week">All Time</option>
+              {/* Backend currently returns all history. Date filtering would need frontend slice or backend param. */}
+              {/* For now keeping 'All Time' as effectively default */}
+            </select>
+          </div>
+        </div>
+      </div>
 
-    <div className="mb-6">
-      <div className="flex flex-wrap gap-4">
-        <div className="flex-1">
-          <label htmlFor="event-select" className="block text-sm font-medium text-gray-700 mb-1">
-            Select Event
-          </label>
-          <select id="event-select" value={selectedEvent} onChange={e => setSelectedEvent(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            <option value="all">All Events</option>
-            {hostEvents.map(event => <option key={event.event_id} value={event.event_id}>
-              {event.title}
-            </option>)}
-          </select>
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center">
+            <div className="bg-indigo-100 p-3 rounded-full">
+              <TicketIcon className="h-6 w-6 text-indigo-600" />
+            </div>
+            <div className="ml-4">
+              <h3 className="text-gray-500 text-sm">Total Tickets Sold</h3>
+              <p className="text-2xl font-semibold">{displayTickets}</p>
+            </div>
+          </div>
         </div>
 
-        <div>
-          <label htmlFor="date-range" className="block text-sm font-medium text-gray-700 mb-1">
-            Date Range
-          </label>
-          <select id="date-range" value={dateRange} onChange={e => setDateRange(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            <option value="week">Last 7 days</option>
-            <option value="month">Last 30 days</option>
-            <option value="year">Last 12 months</option>
-          </select>
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center">
+            <div className="bg-green-100 p-3 rounded-full">
+              <DollarSignIcon className="h-6 w-6 text-green-600" />
+            </div>
+            <div className="ml-4">
+              <h3 className="text-gray-500 text-sm">Total Revenue</h3>
+              <p className="text-2xl font-semibold">KSh {displayRevenue.toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center">
+            <div className="bg-blue-100 p-3 rounded-full">
+              <UsersIcon className="h-6 w-6 text-blue-600" />
+            </div>
+            <div className="ml-4">
+              <h3 className="text-gray-500 text-sm">Avg. Ticket Price</h3>
+              <p className="text-2xl font-semibold">KSh {Math.round(displayAvgPrice).toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center">
+            <div className="bg-yellow-100 p-3 rounded-full">
+              <CalendarIcon className="h-6 w-6 text-yellow-600" />
+            </div>
+            <div className="ml-4">
+              <h3 className="text-gray-500 text-sm">Active Events</h3>
+              <p className="text-2xl font-semibold">{stats.events_breakdown.length}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sales Chart (Global Only for now) */}
+      {selectedEventId === 'all' && (
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4">Sales Trends (All Events)</h2>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stats.sales_history} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
+                <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
+                <Tooltip />
+                <Legend />
+                <Bar yAxisId="left" dataKey="sales" name="Tickets Sold" fill="#8884d8" />
+                <Bar yAxisId="right" dataKey="revenue" name="Revenue (KSh)" fill="#82ca9d" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* Ticket Type Breakdown */}
+      {displayBreakdown.length > 0 && (
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4">Ticket Performance</h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Event</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ticket Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sold</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Revenue</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {displayBreakdown.map((evt: any) => (
+                  evt.ticket_types.map((type: any, idx: number) => (
+                    <tr key={`${evt.event_id}-${type.name}-${idx}`}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{evt.title}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{type.name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">KSh {type.price}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{type.sold}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">KSh {type.revenue.toLocaleString()}</td>
+                    </tr>
+                  ))
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Buyer List */}
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h2 className="text-xl font-semibold mb-4">Recent Transactions</h2>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Event</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ticket</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {displayBuyers.length > 0 ? displayBuyers.map((buyer: any, index: number) => (
+                <tr key={index}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{buyer.name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{buyer.event}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{buyer.ticket_type}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(buyer.date).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">KSh {buyer.amount.toLocaleString()}</td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">No transactions found.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
-
-    {/* Stats Overview */}
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex items-center">
-          <div className="bg-indigo-100 p-3 rounded-full">
-            <TicketIcon className="h-6 w-6 text-indigo-600" />
-          </div>
-          <div className="ml-4">
-            <h3 className="text-gray-500 text-sm">Total Tickets Sold</h3>
-            <p className="text-2xl font-semibold">{totalTickets}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex items-center">
-          <div className="bg-green-100 p-3 rounded-full">
-            <DollarSignIcon className="h-6 w-6 text-green-600" />
-          </div>
-          <div className="ml-4">
-            <h3 className="text-gray-500 text-sm">Total Revenue</h3>
-            <p className="text-2xl font-semibold">${totalRevenue}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex items-center">
-          <div className="bg-blue-100 p-3 rounded-full">
-            <UsersIcon className="h-6 w-6 text-blue-600" />
-          </div>
-          <div className="ml-4">
-            <h3 className="text-gray-500 text-sm">Avg. Ticket Price</h3>
-            <p className="text-2xl font-semibold">${averageTicketPrice}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex items-center">
-          <div className="bg-yellow-100 p-3 rounded-full">
-            <CalendarIcon className="h-6 w-6 text-yellow-600" />
-          </div>
-          <div className="ml-4">
-            <h3 className="text-gray-500 text-sm">Total Events</h3>
-            <p className="text-2xl font-semibold">{filteredEvents.length}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {/* Sales Chart */}
-    <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-      <h2 className="text-xl font-semibold mb-4">Sales Trends</h2>
-      <div className="h-80">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={salesData} margin={{
-            top: 20,
-            right: 30,
-            left: 20,
-            bottom: 5
-          }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
-            <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
-            <Tooltip />
-            <Legend />
-            <Bar yAxisId="left" dataKey="sales" name="Tickets Sold" fill="#8884d8" />
-            <Bar yAxisId="right" dataKey="revenue" name="Revenue ($)" fill="#82ca9d" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-
-    {/* Ticket Types Breakdown */}
-    {selectedEvent !== 'all' && filteredEvents.length > 0 && <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-      <h2 className="text-xl font-semibold mb-4">Ticket Type Breakdown</h2>
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Ticket Type
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Price
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Tickets Sold
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Revenue
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {generateMockTicketTypeData(filteredEvents[0]).map((ticketData: any, index: number) => <tr key={index}>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                {ticketData.name}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                ${filteredEvents[0].ticket_types[index].ticket_price}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {ticketData.sold}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                ${ticketData.revenue}
-              </td>
-            </tr>)}
-          </tbody>
-        </table>
-      </div>
-    </div>}
-
-    {/* Buyer List */}
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-xl font-semibold mb-4">Recent Buyers</h2>
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Name
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Email
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Event
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Ticket Type
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Purchase Date
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Amount
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {/* Mock buyer data */}
-            {Array.from({
-              length: 5
-            }).map((_, index) => {
-              const randomEvent = filteredEvents[Math.floor(Math.random() * filteredEvents.length)] || hostEvents[0];
-              const randomTicket = randomEvent.ticket_types[Math.floor(Math.random() * randomEvent.ticket_types.length)];
-              return <tr key={index}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
-                    {['John Doe', 'Jane Smith', 'Robert Johnson', 'Emily Wilson', 'Michael Brown'][index]}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">
-                    {['john@example.com', 'jane@example.com', 'robert@example.com', 'emily@example.com', 'michael@example.com'][index]}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {randomEvent.title}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">
-                    {randomTicket.ticket_name}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">
-                    {new Date(Date.now() - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000)).toLocaleDateString()}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  ${randomTicket.ticket_price}
-                </td>
-              </tr>;
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>;
+  );
 };
+
 export default HostSalesDashboard;

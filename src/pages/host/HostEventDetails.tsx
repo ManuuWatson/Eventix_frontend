@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeftIcon, TicketIcon, UsersIcon, CheckCircleIcon, XCircleIcon, QrCodeIcon } from "lucide-react";
+import { ArrowLeftIcon, TicketIcon, UsersIcon, CheckCircleIcon, XCircleIcon, QrCodeIcon, BanknoteIcon, LayersIcon } from "lucide-react";
 import axiosInstance from "../../api/axiosInstance";
 
 const HostEventDetails: React.FC = () => {
@@ -88,13 +88,14 @@ const HostEventDetails: React.FC = () => {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 flex items-center">
                     <div className="p-3 bg-blue-100 rounded-full mr-4">
                         <TicketIcon className="h-8 w-8 text-blue-600" />
                     </div>
                     <div>
-                        <p className="text-sm font-medium text-gray-500">Total Tickets Sold</p>
+                        <p className="text-sm font-medium text-gray-500">Tickets Sold</p>
                         <p className="text-2xl font-bold text-gray-900">{event.sold_count || 0}</p>
                     </div>
                 </div>
@@ -104,8 +105,30 @@ const HostEventDetails: React.FC = () => {
                         <UsersIcon className="h-8 w-8 text-green-600" />
                     </div>
                     <div>
-                        <p className="text-sm font-medium text-gray-500">Attendees Checked-In</p>
+                        <p className="text-sm font-medium text-gray-500">Checked-In</p>
                         <p className="text-2xl font-bold text-gray-900">{event.attendees_count || 0}</p>
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 flex items-center">
+                    <div className="p-3 bg-yellow-100 rounded-full mr-4">
+                        <BanknoteIcon className="h-8 w-8 text-yellow-600" />
+                    </div>
+                    <div>
+                        <p className="text-sm font-medium text-gray-500">Revenue (KSh)</p>
+                        <p className="text-2xl font-bold text-gray-900">
+                            {event.revenue?.toLocaleString() || 0}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 flex items-center">
+                    <div className="p-3 bg-purple-100 rounded-full mr-4">
+                        <LayersIcon className="h-8 w-8 text-purple-600" />
+                    </div>
+                    <div>
+                        <p className="text-sm font-medium text-gray-500">Available</p>
+                        <p className="text-2xl font-bold text-gray-900">{event.tickets_available || 0}</p>
                     </div>
                 </div>
             </div>

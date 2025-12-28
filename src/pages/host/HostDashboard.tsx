@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Routes, Route, Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { useEvents, EventContextType } from "../../context/EventContext";
+import axiosInstance from "../../api/axiosInstance";
 import {
   LayoutDashboardIcon,
   CalendarIcon,
@@ -18,9 +18,6 @@ import HostEventsList from "./HostEventsList";
 import HostSalesDashboard from "./HostSalesDashboard";
 import HostEventDetails from "./HostEventDetails";
 import HostSettings from "./HostSettings";
-
-// ... existing code ...
-
 
 
 // ✅ SummaryCard Component
@@ -40,55 +37,51 @@ const SummaryCard: React.FC<{ title: string; value: string | number; icon: React
 
 const HostDashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const { events, fetchEvents } = useEvents() as EventContextType;
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [hostEvents, setHostEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // ✅ Ensure valid events
-  const safeEvents = Array.isArray(events) ? events : [];
-  const hostEvents = safeEvents.filter((event) => Number(event.host_id) === Number(user?.id));
+  // ✅ Fetch Host Events directly to get full stats (pending, past, revenue, etc.)
+  useEffect(() => {
+    const fetchHostEvents = async () => {
+      try {
+        const response = await axiosInstance.get("/events/my_events/?include_stats=true");
+        setHostEvents(response.data);
+      } catch (error) {
+        console.error("Error fetching host events:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (user) {
+      fetchHostEvents();
+    }
+  }, [user]);
 
-  // ✅ Dashboard summaries
+
+  // ✅ Dashboard summaries (Using real backend fields)
   const totalEvents = hostEvents.length;
-  const upcomingEvents = hostEvents.filter((event) => new Date(event.date) > new Date()).length;
+  // Upcoming = Date >= Today (ignoring time for simplicity or using full date comparison)
+  const upcomingEvents = hostEvents.filter((event) => new Date(event.date) >= new Date(new Date().setHours(0, 0, 0, 0))).length;
 
   const totalTicketsAvailable = hostEvents.reduce(
-    (acc, event) =>
-      acc +
-      (Array.isArray(event.ticket_types)
-        ? event.ticket_types.reduce((sum, ticket) => sum + (ticket.quantity || 0), 0)
-        : 0),
+    (acc, event) => acc + (event.tickets_available || 0),
     0
   );
 
   const totalTicketsSold = hostEvents.reduce(
-    (acc, event) =>
-      acc +
-      (Array.isArray(event.ticket_types)
-        ? event.ticket_types.reduce((sum, ticket) => sum + (ticket.sold || 0), 0)
-        : 0),
+    (acc, event) => acc + (event.sold_count || 0),
     0
   );
 
   const totalRevenue = hostEvents.reduce(
-    (acc, event) =>
-      acc +
-      (Array.isArray(event.ticket_types)
-        ? event.ticket_types.reduce(
-          (sum, ticket) => sum + ticket.price * (ticket.sold || ticket.quantity || 0),
-          0
-        )
-        : 0),
+    (acc, event) => acc + (Number(event.revenue) || 0),
     0
   );
 
   const recentEvents = hostEvents.slice(0, 4);
-
-  // ✅ Refetch events when dashboard mounts
-  useEffect(() => {
-    fetchEvents();
-  }, []);
 
   const handleLogout = () => {
     logout();
@@ -212,17 +205,17 @@ const HostDashboard: React.FC = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 mb-8">
                   <SummaryCard
                     title="Total Events"
-                    value={totalEvents || 0}
+                    value={totalEvents}
                     icon={<CalendarIcon className="h-6 w-6 text-indigo-600" />}
                   />
                   <SummaryCard
                     title="Upcoming Events"
-                    value={upcomingEvents || 0}
+                    value={upcomingEvents}
                     icon={<LayoutDashboardIcon className="h-6 w-6 text-green-600" />}
                   />
                   <SummaryCard
                     title="Tickets Available"
-                    value={totalTicketsAvailable || 0}
+                    value={totalTicketsAvailable}
                     icon={<UsersIcon className="h-6 w-6 text-orange-600" />}
                   />
                   <SummaryCard
@@ -231,8 +224,8 @@ const HostDashboard: React.FC = () => {
                     icon={<UsersIcon className="h-6 w-6 text-red-600" />}
                   />
                   <SummaryCard
-                    title="Revenue (Est.)"
-                    value={`$${(totalRevenue || 0).toFixed(2)}`}
+                    title="Revenue (KSh)"
+                    value={`KSh ${totalRevenue.toLocaleString()}`}
                     icon={<DollarSignIcon className="h-6 w-6 text-yellow-600" />}
                   />
                 </div>
@@ -243,7 +236,7 @@ const HostDashboard: React.FC = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                     {recentEvents.map((event) => (
                       <div
-                        key={event.event_id}
+                        key={event.event_id || event.id}
                         className="bg-white p-5 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
                       >
                         <h3 className="text-xl font-semibold mb-2">{event.name}</h3>
@@ -253,12 +246,12 @@ const HostDashboard: React.FC = () => {
                         </p>
                         <p className="text-sm text-gray-600 mb-4">{event.location}</p>
                         <span
-                          className={`px-3 py-1 text-xs font-semibold rounded-full ${event.status === "Approved"
+                          className={`px-3 py-1 text-xs font-semibold rounded-full ${event.is_approved
                             ? "bg-green-200 text-green-800"
                             : "bg-yellow-200 text-yellow-800"
                             }`}
                         >
-                          {event.status}
+                          {event.is_approved ? "Approved" : "Pending"}
                         </span>
                       </div>
                     ))}

@@ -287,7 +287,7 @@ const HostEventsList: React.FC = () => {
             </div>
 
             {/* Mobile Cards */}
-            <div className="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-4 p-4">
+            <div className="md:hidden grid grid-cols-2 gap-2 p-2">
               {filteredEvents.map((event) => {
                 const { datePart, timePart } = formatDateTime(event.date);
                 return (
