@@ -118,19 +118,19 @@ const HostEventDetails: React.FC = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-2 text-center">
                                 Scan QR Code or Enter Ticket ID
                             </label>
-                            <div className="flex gap-2">
+                            <div className="flex flex-col sm:flex-row gap-3">
                                 <input
                                     type="text"
                                     value={ticketId}
                                     onChange={(e) => setTicketId(e.target.value)}
                                     placeholder="Ticket ID"
-                                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-lg text-center"
+                                    className="w-full sm:flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-lg text-center"
                                     autoFocus
                                 />
                                 <button
                                     type="submit"
                                     disabled={checkInStatus === "loading" || !ticketId}
-                                    className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition disabled:opacity-50"
+                                    className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition disabled:opacity-50"
                                 >
                                     {checkInStatus === "loading" ? "..." : "Validate"}
                                 </button>
