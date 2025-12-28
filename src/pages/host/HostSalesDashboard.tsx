@@ -103,51 +103,51 @@ const HostSalesDashboard = () => {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-8">
+        <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
           <div className="flex items-center">
-            <div className="bg-indigo-100 p-3 rounded-full">
-              <TicketIcon className="h-6 w-6 text-indigo-600" />
+            <div className="bg-indigo-100 p-2 sm:p-3 rounded-full">
+              <TicketIcon className="h-5 w-5 sm:h-6 sm:w-6 text-indigo-600" />
             </div>
-            <div className="ml-4">
-              <h3 className="text-gray-500 text-sm">Total Tickets Sold</h3>
-              <p className="text-2xl font-semibold">{displayTickets}</p>
+            <div className="ml-3 sm:ml-4">
+              <h3 className="text-gray-500 text-xs sm:text-sm">Total Sales</h3>
+              <p className="text-lg sm:text-2xl font-semibold">{displayTickets}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
           <div className="flex items-center">
-            <div className="bg-green-100 p-3 rounded-full">
-              <DollarSignIcon className="h-6 w-6 text-green-600" />
+            <div className="bg-green-100 p-2 sm:p-3 rounded-full">
+              <DollarSignIcon className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
             </div>
-            <div className="ml-4">
-              <h3 className="text-gray-500 text-sm">Total Revenue</h3>
-              <p className="text-2xl font-semibold">KSh {displayRevenue.toLocaleString()}</p>
+            <div className="ml-3 sm:ml-4 min-w-0">
+              <h3 className="text-gray-500 text-xs sm:text-sm truncate">Total Revenue</h3>
+              <p className="text-lg sm:text-2xl font-semibold truncate">KSh {displayRevenue.toLocaleString()}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
           <div className="flex items-center">
-            <div className="bg-blue-100 p-3 rounded-full">
-              <UsersIcon className="h-6 w-6 text-blue-600" />
+            <div className="bg-blue-100 p-2 sm:p-3 rounded-full">
+              <UsersIcon className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
             </div>
-            <div className="ml-4">
-              <h3 className="text-gray-500 text-sm">Avg. Ticket Price</h3>
-              <p className="text-2xl font-semibold">KSh {Math.round(displayAvgPrice).toLocaleString()}</p>
+            <div className="ml-3 sm:ml-4">
+              <h3 className="text-gray-500 text-xs sm:text-sm">Avg. Price</h3>
+              <p className="text-lg sm:text-2xl font-semibold">KSh {Math.round(displayAvgPrice).toLocaleString()}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
           <div className="flex items-center">
-            <div className="bg-yellow-100 p-3 rounded-full">
-              <CalendarIcon className="h-6 w-6 text-yellow-600" />
+            <div className="bg-yellow-100 p-2 sm:p-3 rounded-full">
+              <CalendarIcon className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" />
             </div>
-            <div className="ml-4">
-              <h3 className="text-gray-500 text-sm">Active Events</h3>
-              <p className="text-2xl font-semibold">{stats.events_breakdown.length}</p>
+            <div className="ml-3 sm:ml-4">
+              <h3 className="text-gray-500 text-xs sm:text-sm">Active Events</h3>
+              <p className="text-lg sm:text-2xl font-semibold">{stats.events_breakdown.length}</p>
             </div>
           </div>
         </div>
@@ -159,15 +159,15 @@ const HostSalesDashboard = () => {
           <h2 className="text-xl font-semibold mb-4">Sales Trends (All Events)</h2>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.sales_history} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
+              <BarChart data={stats.sales_history} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="date" />
                 <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
                 <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
                 <Tooltip />
                 <Legend />
-                <Bar yAxisId="left" dataKey="sales" name="Tickets Sold" fill="#8884d8" />
-                <Bar yAxisId="right" dataKey="revenue" name="Revenue (KSh)" fill="#82ca9d" />
+                <Bar yAxisId="left" dataKey="sales" name="Tickets Sold" fill="#8884d8" barSize={20} />
+                <Bar yAxisId="right" dataKey="revenue" name="Revenue (KSh)" fill="#82ca9d" barSize={20} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -192,7 +192,7 @@ const HostSalesDashboard = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {displayBreakdown.map((evt: any) => (
                   evt.ticket_types.map((type: any, idx: number) => (
-                    <tr key={`${evt.event_id}-${type.name}-${idx}`}>
+                    <tr key={`${evt.event_id} -${type.name} -${idx} `}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{evt.title}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{type.name}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">KSh {type.price}</td>
