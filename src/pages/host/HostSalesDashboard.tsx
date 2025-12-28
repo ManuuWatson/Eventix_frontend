@@ -3,7 +3,7 @@ import { useEvents } from '../../context/EventContext';
 import { useAuth } from '../../context/AuthContext';
 import axiosInstance from '../../api/axiosInstance';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { DollarSignIcon, UsersIcon, TicketIcon, CalendarIcon } from 'lucide-react';
+import { DollarSignIcon, UsersIcon, TicketIcon, CalendarIcon, WalletIcon, XIcon } from 'lucide-react';
 
 interface SalesStats {
   total_revenue: number;
@@ -14,37 +14,80 @@ interface SalesStats {
   events_breakdown: any[];
 }
 
+interface Withdrawal {
+  id: number;
+  amount: number;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+}
+
 const HostSalesDashboard = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState<SalesStats | null>(null);
+  const [balance, setBalance] = useState<number>(0);
+  const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Withdraw Modal State
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
+  const [withdrawSuccess, setWithdrawSuccess] = useState<string | null>(null);
+
   const [selectedEventId, setSelectedEventId] = useState<string>('all');
-  const [dateRange, setDateRange] = useState<string>('week'); // Keep UI but logic might be limited
+  const [dateRange, setDateRange] = useState<string>('week');
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
       try {
-        const res = await axiosInstance.get('/events/sales_stats/');
-        setStats(res.data);
+        const [statsRes, balanceRes, withdrawalsRes] = await Promise.all([
+          axiosInstance.get('/events/sales_stats/'),
+          axiosInstance.get('/payments/balance/'),
+          axiosInstance.get('/payments/withdrawals/')
+        ]);
+        setStats(statsRes.data);
+        setBalance(balanceRes.data.available_balance);
+        setWithdrawals(withdrawalsRes.data);
       } catch (err) {
-        console.error("Error fetching sales stats:", err);
+        console.error("Error fetching dashboard data:", err);
       } finally {
         setLoading(false);
       }
-    }
-    fetchStats();
+    };
+    fetchData();
   }, []);
+
+  const handleWithdraw = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setWithdrawError(null);
+    setWithdrawSuccess(null);
+    try {
+      await axiosInstance.post('/payments/withdraw/', { amount: withdrawAmount });
+      setWithdrawSuccess("Withdrawal requested successfully!");
+      setWithdrawAmount('');
+      // Refresh data
+      const [balanceRes, withdrawalsRes] = await Promise.all([
+        axiosInstance.get('/payments/balance/'),
+        axiosInstance.get('/payments/withdrawals/')
+      ]);
+      setBalance(balanceRes.data.available_balance);
+      setWithdrawals(withdrawalsRes.data);
+      setTimeout(() => {
+        setIsWithdrawModalOpen(false);
+        setWithdrawSuccess(null);
+      }, 2000);
+    } catch (err: any) {
+      setWithdrawError(err.response?.data?.error || "Failed to request withdrawal.");
+    }
+  };
 
   if (loading) return <div className="p-8 text-center text-gray-500">Loading sales data...</div>;
   if (!stats) return <div className="p-8 text-center text-gray-500">No sales data available.</div>;
 
   // Filter Logic
-  // If 'all', use global stats. If specific event, calculate from breakdown/buyers.
   let displayTickets = stats.total_tickets;
   let displayRevenue = stats.total_revenue;
   let displayAvgPrice = stats.avg_price;
-  let displayBuyers = stats.recent_buyers;
-  let displayBreakdown = stats.events_breakdown;
 
   if (selectedEventId !== 'all') {
     const evt = stats.events_breakdown.find(e => e.event_id === Number(selectedEventId));
@@ -52,15 +95,10 @@ const HostSalesDashboard = () => {
       displayTickets = evt.sold;
       displayRevenue = evt.revenue;
       displayAvgPrice = displayTickets > 0 ? displayRevenue / displayTickets : 0;
-      displayBreakdown = [evt]; // Only show this event
-      // Filter buyers
-      displayBuyers = stats.recent_buyers.filter(b => b.event === evt.title);
     } else {
       displayTickets = 0;
       displayRevenue = 0;
       displayAvgPrice = 0;
-      displayBuyers = [];
-      displayBreakdown = [];
     }
   }
 
@@ -95,8 +133,6 @@ const HostSalesDashboard = () => {
             </label>
             <select id="date-range" value={dateRange} onChange={e => setDateRange(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
               <option value="week">All Time</option>
-              {/* Backend currently returns all history. Date filtering would need frontend slice or backend param. */}
-              {/* For now keeping 'All Time' as effectively default */}
             </select>
           </div>
         </div>
@@ -140,15 +176,25 @@ const HostSalesDashboard = () => {
           </div>
         </div>
 
+        {/* Withdrawal / Wallet Card */}
         <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
-          <div className="flex items-center">
-            <div className="bg-yellow-100 p-2 sm:p-3 rounded-full">
-              <CalendarIcon className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" />
+          <div className="flex flex-col justify-between h-full">
+            <div className="flex items-center mb-2">
+              <div className="bg-purple-100 p-2 sm:p-3 rounded-full">
+                <WalletIcon className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
+              </div>
+              <div className="ml-3 sm:ml-4 min-w-0">
+                <h3 className="text-gray-500 text-xs sm:text-sm truncate">Available Balance</h3>
+                <p className="text-lg sm:text-2xl font-semibold truncate">KSh {balance.toLocaleString()}</p>
+              </div>
             </div>
-            <div className="ml-3 sm:ml-4">
-              <h3 className="text-gray-500 text-xs sm:text-sm">Active Events</h3>
-              <p className="text-lg sm:text-2xl font-semibold">{stats.events_breakdown.length}</p>
-            </div>
+            <button
+              onClick={() => setIsWithdrawModalOpen(true)}
+              className="w-full mt-auto bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm font-semibold py-2 rounded transition-colors"
+              disabled={balance <= 0}
+            >
+              Request Withdrawal
+            </button>
           </div>
         </div>
       </div>
@@ -173,8 +219,102 @@ const HostSalesDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Withdrawal History Table */}
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h2 className="text-xl font-semibold mb-4">Withdrawal History</h2>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ref #</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {withdrawals.length > 0 ? withdrawals.map((w) => (
+                <tr key={w.id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(w.created_at).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">KSh {Number(w.amount).toLocaleString()}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    ${w.status === 'approved' ? 'bg-green-100 text-green-800' :
+                        w.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                      {w.status.charAt(0).toUpperCase() + w.status.slice(1)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{/* Ref Not Exposed yet in logic, maybe add later */} - </td>
+                </tr>
+              )) : (
+                <tr><td colSpan={4} className="px-6 py-4 text-center text-gray-500 text-sm">No withdrawal history.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Modal */}
+      {isWithdrawModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 relative">
+            <button
+              onClick={() => setIsWithdrawModalOpen(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <XIcon className="h-6 w-6" />
+            </button>
+            <h2 className="text-xl font-bold mb-4">Request Withdrawal</h2>
+
+            {withdrawSuccess && (
+              <div className="mb-4 p-3 bg-green-100 text-green-700 rounded text-sm">
+                {withdrawSuccess}
+              </div>
+            )}
+            {withdrawError && (
+              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded text-sm">
+                {withdrawError}
+              </div>
+            )}
+
+            <form onSubmit={handleWithdraw}>
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-bold mb-2">
+                  Amount (KSh)
+                </label>
+                <input
+                  type="number"
+                  value={withdrawAmount}
+                  onChange={(e) => setWithdrawAmount(e.target.value)}
+                  max={balance}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  placeholder={`Max: ${balance}`}
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">Available: KSh {balance.toLocaleString()}</p>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsWithdrawModalOpen(false)}
+                  className="mr-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 font-bold"
+                >
+                  Submit Request
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
-
 export default HostSalesDashboard;
