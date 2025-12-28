@@ -325,33 +325,35 @@ const HostEventsList: React.FC = () => {
                           {event.is_approved ? "Approved" : "Pending"}
                         </span>
                       </div>
-                      <div className="flex justify-end space-x-3 pt-2">
+                      <div className="mt-3 space-y-2">
+                        <div className="flex justify-end space-x-2">
+                          <button
+                            onClick={() => handleView((event.event_id || event.id)!)}
+                            className="p-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors"
+                            title="Public View"
+                          >
+                            <EyeIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleEdit((event.event_id || event.id)!)}
+                            className="p-1.5 bg-indigo-50 text-indigo-600 rounded-md hover:bg-indigo-100 transition-colors"
+                            title="Edit"
+                          >
+                            <EditIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick((event.event_id || event.id)!)}
+                            className="p-1.5 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors"
+                            title="Delete"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        </div>
                         <button
                           onClick={() => handleDetails((event.event_id || event.id)!)}
-                          className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded text-xs font-semibold transition-colors whitespace-nowrap"
+                          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-md text-xs font-bold transition-colors shadow-sm"
                         >
                           View Details
-                        </button>
-                        <button
-                          onClick={() => handleView((event.event_id || event.id)!)}
-                          className="text-blue-600 hover:text-blue-800"
-                          title="View"
-                        >
-                          <EyeIcon className="h-5 w-5" />
-                        </button>
-                        <button
-                          onClick={() => handleEdit((event.event_id || event.id)!)}
-                          className="text-indigo-600 hover:text-indigo-800"
-                          title="Edit"
-                        >
-                          <EditIcon className="h-5 w-5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick((event.event_id || event.id)!)}
-                          className="text-red-600 hover:text-red-800"
-                          title="Delete"
-                        >
-                          <TrashIcon className="h-5 w-5" />
                         </button>
                       </div>
                     </div>

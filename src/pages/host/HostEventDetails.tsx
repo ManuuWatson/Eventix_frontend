@@ -89,46 +89,46 @@ const HostEventDetails: React.FC = () => {
 
             {/* Stats Cards */}
             {/* Stats Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 flex items-center">
-                    <div className="p-3 bg-blue-100 rounded-full mr-4">
-                        <TicketIcon className="h-8 w-8 text-blue-600" />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+                <div className="bg-white p-3 sm:p-6 rounded-xl shadow-md border border-gray-100 flex items-center">
+                    <div className="p-2 sm:p-3 bg-blue-100 rounded-full mr-2 sm:mr-4">
+                        <TicketIcon className="h-5 w-5 sm:h-8 sm:w-8 text-blue-600" />
                     </div>
                     <div>
-                        <p className="text-sm font-medium text-gray-500">Tickets Sold</p>
-                        <p className="text-2xl font-bold text-gray-900">{event.sold_count || 0}</p>
+                        <p className="text-xs sm:text-sm font-medium text-gray-500">Sold</p>
+                        <p className="text-lg sm:text-2xl font-bold text-gray-900">{event.sold_count || 0}</p>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 flex items-center">
-                    <div className="p-3 bg-green-100 rounded-full mr-4">
-                        <UsersIcon className="h-8 w-8 text-green-600" />
+                <div className="bg-white p-3 sm:p-6 rounded-xl shadow-md border border-gray-100 flex items-center">
+                    <div className="p-2 sm:p-3 bg-green-100 rounded-full mr-2 sm:mr-4">
+                        <UsersIcon className="h-5 w-5 sm:h-8 sm:w-8 text-green-600" />
                     </div>
                     <div>
-                        <p className="text-sm font-medium text-gray-500">Checked-In</p>
-                        <p className="text-2xl font-bold text-gray-900">{event.attendees_count || 0}</p>
+                        <p className="text-xs sm:text-sm font-medium text-gray-500">Checked-In</p>
+                        <p className="text-lg sm:text-2xl font-bold text-gray-900">{event.attendees_count || 0}</p>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 flex items-center">
-                    <div className="p-3 bg-yellow-100 rounded-full mr-4">
-                        <BanknoteIcon className="h-8 w-8 text-yellow-600" />
+                <div className="bg-white p-3 sm:p-6 rounded-xl shadow-md border border-gray-100 flex items-center">
+                    <div className="p-2 sm:p-3 bg-yellow-100 rounded-full mr-2 sm:mr-4">
+                        <BanknoteIcon className="h-5 w-5 sm:h-8 sm:w-8 text-yellow-600" />
                     </div>
-                    <div>
-                        <p className="text-sm font-medium text-gray-500">Revenue (KSh)</p>
-                        <p className="text-2xl font-bold text-gray-900">
+                    <div className="min-w-0">
+                        <p className="text-xs sm:text-sm font-medium text-gray-500 truncate">Revenue</p>
+                        <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
                             {event.revenue?.toLocaleString() || 0}
                         </p>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 flex items-center">
-                    <div className="p-3 bg-purple-100 rounded-full mr-4">
-                        <LayersIcon className="h-8 w-8 text-purple-600" />
+                <div className="bg-white p-3 sm:p-6 rounded-xl shadow-md border border-gray-100 flex items-center">
+                    <div className="p-2 sm:p-3 bg-purple-100 rounded-full mr-2 sm:mr-4">
+                        <LayersIcon className="h-5 w-5 sm:h-8 sm:w-8 text-purple-600" />
                     </div>
                     <div>
-                        <p className="text-sm font-medium text-gray-500">Available</p>
-                        <p className="text-2xl font-bold text-gray-900">{event.tickets_available || 0}</p>
+                        <p className="text-xs sm:text-sm font-medium text-gray-500">Available</p>
+                        <p className="text-lg sm:text-2xl font-bold text-gray-900">{event.tickets_available || 0}</p>
                     </div>
                 </div>
             </div>
