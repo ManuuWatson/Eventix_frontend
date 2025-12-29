@@ -11,6 +11,9 @@ import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import HostDashboard from "./pages/host/HostDashboard";
 import UserDashboard from "./pages/user/UserDashboard";
+import AboutPage from "./pages/AboutPage";
+import ContactPage from "./pages/ContactPage";
+import ComingSoonPage from "./pages/ComingSoonPage";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { EventProvider } from "./context/EventContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -73,6 +76,15 @@ function AppContent() {
         <Route path="events/:eventId" element={<EventDetailsPage />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
+        <Route path="about" element={<AboutPage />} />
+        <Route path="contact" element={<ContactPage />} />
+
+        {/* Placeholder Routes */}
+        <Route path="faq" element={<ComingSoonPage />} />
+        <Route path="terms" element={<ComingSoonPage />} />
+        <Route path="privacy" element={<ComingSoonPage />} />
+        <Route path="pricing" element={<ComingSoonPage />} />
+        <Route path="resources" element={<ComingSoonPage />} />
 
         {/* Protected Routes */}
         <Route
