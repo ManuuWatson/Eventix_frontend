@@ -8,7 +8,7 @@ import { DollarSignIcon, UsersIcon, TicketIcon, CalendarIcon, WalletIcon, XIcon 
 interface SalesStats {
   total_revenue: number;
   total_tickets: number;
-  avg_price: number;
+  service_fee: number;
   sales_history: any[];
   recent_buyers: any[];
   events_breakdown: any[];
@@ -87,18 +87,18 @@ const HostSalesDashboard = () => {
   // Filter Logic
   let displayTickets = stats.total_tickets;
   let displayRevenue = stats.total_revenue;
-  let displayAvgPrice = stats.avg_price;
+  let displayServiceFee = stats.service_fee;
 
   if (selectedEventId !== 'all') {
     const evt = stats.events_breakdown.find(e => e.event_id === Number(selectedEventId));
     if (evt) {
       displayTickets = evt.sold;
       displayRevenue = evt.revenue;
-      displayAvgPrice = displayTickets > 0 ? displayRevenue / displayTickets : 0;
+      displayServiceFee = displayRevenue * 0.10;
     } else {
       displayTickets = 0;
       displayRevenue = 0;
-      displayAvgPrice = 0;
+      displayServiceFee = 0;
     }
   }
 
@@ -166,12 +166,12 @@ const HostSalesDashboard = () => {
 
         <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
           <div className="flex items-center">
-            <div className="bg-blue-100 p-2 sm:p-3 rounded-full">
-              <UsersIcon className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+            <div className="bg-red-100 p-2 sm:p-3 rounded-full">
+              <UsersIcon className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
             </div>
             <div className="ml-3 sm:ml-4">
-              <h3 className="text-gray-500 text-xs sm:text-sm">Avg. Price</h3>
-              <p className="text-lg sm:text-2xl font-semibold">KSh {Math.round(displayAvgPrice).toLocaleString()}</p>
+              <h3 className="text-gray-500 text-xs sm:text-sm">Service Fee (10%)</h3>
+              <p className="text-lg sm:text-2xl font-semibold">KSh {Math.round(displayServiceFee).toLocaleString()}</p>
             </div>
           </div>
         </div>
