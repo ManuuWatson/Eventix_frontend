@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useEvents } from '../../context/EventContext';
-import { useAuth } from '../../context/AuthContext';
+
+
 import axiosInstance from '../../api/axiosInstance';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { DollarSignIcon, UsersIcon, TicketIcon, CalendarIcon, WalletIcon, XIcon } from 'lucide-react';
+import { DollarSignIcon, UsersIcon, TicketIcon, WalletIcon, XIcon } from 'lucide-react';
 
 interface SalesStats {
   total_revenue: number;
@@ -22,7 +22,7 @@ interface Withdrawal {
 }
 
 const HostSalesDashboard = () => {
-  const { user } = useAuth();
+
   const [stats, setStats] = useState<SalesStats | null>(null);
   const [balance, setBalance] = useState<number>(0);
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
