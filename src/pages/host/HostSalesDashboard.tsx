@@ -89,16 +89,24 @@ const HostSalesDashboard = () => {
   let displayRevenue = stats.total_revenue;
   let displayServiceFee = stats.service_fee;
 
-  if (selectedEventId !== 'all') {
+  // Calculate Balance logic: 
+  // If 'all': Show global wallet balance (which accounts for withdrawals).
+  // If event selected: Show Net Earnings for that event (Revenue * 0.9). withdrawals are global so can't be subtracted per event.
+  let displayBalance = balance;
+  let isGlobalView = selectedEventId === 'all';
+
+  if (!isGlobalView) {
     const evt = stats.events_breakdown.find(e => e.event_id === Number(selectedEventId));
     if (evt) {
       displayTickets = evt.sold;
       displayRevenue = evt.revenue;
       displayServiceFee = displayRevenue * 0.10;
+      displayBalance = displayRevenue * 0.90; // Net earnings for this specific event
     } else {
       displayTickets = 0;
       displayRevenue = 0;
       displayServiceFee = 0;
+      displayBalance = 0;
     }
   }
 
@@ -139,7 +147,7 @@ const HostSalesDashboard = () => {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-6 mb-8">
         <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
           <div className="flex items-center">
             <div className="bg-indigo-100 p-2 sm:p-3 rounded-full">
@@ -176,6 +184,19 @@ const HostSalesDashboard = () => {
           </div>
         </div>
 
+        {/* Net Earnings Card */}
+        <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
+          <div className="flex items-center">
+            <div className="bg-blue-100 p-2 sm:p-3 rounded-full">
+              <DollarSignIcon className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+            </div>
+            <div className="ml-3 sm:ml-4 min-w-0">
+              <h3 className="text-gray-500 text-xs sm:text-sm">Net Earnings</h3>
+              <p className="text-lg sm:text-2xl font-semibold break-words">KSh {(displayRevenue - displayServiceFee).toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+
         {/* Withdrawal / Wallet Card */}
         <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
           <div className="flex flex-col justify-between h-full">
@@ -184,17 +205,34 @@ const HostSalesDashboard = () => {
                 <WalletIcon className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
               </div>
               <div className="ml-3 sm:ml-4 min-w-0">
-                <h3 className="text-gray-500 text-xs sm:text-sm truncate">Available Balance</h3>
-                <p className="text-lg sm:text-2xl font-semibold truncate">KSh {balance.toLocaleString()}</p>
+                <h3 className="text-gray-500 text-xs sm:text-sm">
+                  {isGlobalView ? "Available To Withdraw" : "Net Earnings (Event)"}
+                </h3>
+                <p className="text-lg sm:text-2xl font-semibold break-words">KSh {displayBalance.toLocaleString()}</p>
               </div>
             </div>
-            <button
-              onClick={() => setIsWithdrawModalOpen(true)}
-              className="w-full mt-auto bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm font-semibold py-2 rounded transition-colors"
-              disabled={balance <= 0}
-            >
-              Request Withdrawal
-            </button>
+
+            {isGlobalView ? (
+              <button
+                onClick={() => setIsWithdrawModalOpen(true)}
+                className="w-full mt-auto bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm font-semibold py-2 rounded transition-colors"
+                disabled={balance <= 0}
+              >
+                Request Withdrawal
+              </button>
+            ) : (
+              <div className="w-full mt-auto text-center">
+                <span className="text-xs text-gray-500 block mb-1">Switch to "All Events" to withdraw</span>
+                <button
+                  title="Switch to All Events to withdraw funds"
+                  className="w-full bg-gray-100 text-gray-400 text-xs sm:text-sm font-semibold py-2 rounded cursor-not-allowed"
+                  disabled
+                >
+                  Request Withdrawal
+                </button>
+              </div>
+            )}
+
           </div>
         </div>
       </div>
