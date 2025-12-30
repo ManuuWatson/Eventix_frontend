@@ -202,7 +202,7 @@ const EventDetailsPage = () => {
                     >
                       <div className="flex justify-between items-center mb-2">
                         <h3 className="font-medium text-gray-900">{ticket.ticket_name}</h3>
-                        <span className="text-indigo-600 font-bold text-lg">KES {ticket.ticket_price}</span>
+                        <span className="text-indigo-600 font-bold text-lg">KSh {ticket.ticket_price}</span>
                       </div>
                       <p className="text-sm text-gray-600">
                         {ticket.ticket_quantity === null

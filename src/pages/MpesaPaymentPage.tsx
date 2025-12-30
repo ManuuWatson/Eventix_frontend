@@ -98,12 +98,17 @@ const MpesaPaymentPage: React.FC = () => {
           if (statusData.status === "failed") {
             clearInterval(poll);
             setPaymentStatus("failed");
-            setPaymentMessage("Payment failed. Please try again.");
+
+            if (statusData.result_code === "1032") {
+              setPaymentMessage("Request cancelled by user.");
+            } else {
+              setPaymentMessage(statusData.result_desc || "Payment failed. Please try again.");
+            }
           }
         } catch (err) {
           console.error("Polling error:", err);
         }
-      }, 12000);
+      }, 2000);
 
     } catch (error: any) {
       console.error(error);
@@ -212,6 +217,9 @@ const MpesaPaymentPage: React.FC = () => {
             <div className="text-center py-6 text-red-600">
               <h3 className="text-2xl font-bold">Payment Failed</h3>
               <p>{paymentMessage}</p>
+              <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200">
+                Try Again
+              </button>
             </div>
           )}
         </div>
@@ -221,6 +229,24 @@ const MpesaPaymentPage: React.FC = () => {
           <p className="text-xs text-gray-400">Secured by M-Pesa & Eventix</p>
         </div>
       </div>
+
+      {/* CANCELLED MODAL */}
+      {paymentStatus === "failed" && paymentMessage.toLowerCase().includes("cancelled") && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center animate-in scale-95 duration-200">
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Payment Cancelled</h3>
+            <p className="text-gray-600 mb-6">
+              You cancelled the payment request. Please try again if you want to proceed.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

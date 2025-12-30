@@ -225,7 +225,7 @@ const TicketConfirmationPage = () => {
                     <tr>
                       <td className="py-2 text-gray-600">Amount Paid:</td>
                       <td className="py-2 font-medium">
-                        ${ticketDetails.totalPaid}
+                        KSh {ticketDetails.totalPaid}
                       </td>
                     </tr>
                   </tbody>

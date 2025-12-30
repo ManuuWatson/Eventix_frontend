@@ -217,13 +217,13 @@ const CheckoutPage = () => {
             </div>
             <div className="border-t border-gray-200 pt-4 mb-4">
               <div className="flex justify-between mb-2"><span>Ticket Type:</span><span>{ticketType.ticket_name}</span></div>
-              <div className="flex justify-between mb-2"><span>Price per ticket:</span><span>{ticketType.ticket_price}</span></div>
+              <div className="flex justify-between mb-2"><span>Price per ticket:</span><span>KSh {ticketType.ticket_price}</span></div>
               <div className="flex justify-between mb-2"><span>Quantity:</span><span>{formData.quantity}</span></div>
-              <div className="flex justify-between mb-2"><span>Subtotal:</span><span>{subtotal}</span></div>
+              <div className="flex justify-between mb-2"><span>Subtotal:</span><span>KSh {subtotal}</span></div>
             </div>
             <div className="border-t border-gray-200 pt-4 mb-6 flex justify-between font-bold">
               <span>Total:</span>
-              <span>{total}</span>
+              <span>KSh {total}</span>
             </div>
             <button className="w-full bg-indigo-600 text-white py-3 rounded-md font-medium hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center" onClick={handleSubmit} disabled={isProcessing}>
               {isProcessing ? (
