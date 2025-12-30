@@ -41,6 +41,11 @@ const RegisterPage: React.FC = () => {
       return;
     }
 
+    if (form.password.length < 4) {
+      setFormError("Password must be at least 4 characters long.");
+      return;
+    }
+
     if (form.password !== form.confirmPassword) {
       setFormError("Passwords do not match.");
       return;
