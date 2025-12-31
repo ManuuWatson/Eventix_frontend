@@ -55,10 +55,10 @@ const HostDashboard: React.FC = () => {
         setLoading(false);
       }
     };
-    if (user) {
+    if (user && (location.pathname === "/host/dashboard" || location.pathname === "/host/dashboard/" || location.state?.refresh)) {
       fetchHostEvents();
     }
-  }, [user]);
+  }, [user, location.pathname, location.state]);
 
 
   // ✅ Dashboard summaries (Using real backend fields)

@@ -50,7 +50,7 @@ const EventsPage = () => {
     },
     staleTime: 0, // always consider data stale to fetch fresh
     refetchOnWindowFocus: true,
-    refetchInterval: 5000, // fetch fresh events every 5 seconds
+    refetchInterval: 2000, // fetch fresh events every 2 seconds
   };
 
   const { data: events = [], isLoading, error }: UseQueryResult<EventType[], Error> =
@@ -113,49 +113,48 @@ const EventsPage = () => {
   return (
     <div className="container mx-auto px-4 py-8">
 
-   {/* ================= HERO CAROUSEL ================= */}
-<section className="relative mb-12 h-[520px] md:h-[600px] rounded-xl overflow-hidden shadow-xl">
+      {/* ================= HERO CAROUSEL ================= */}
+      <section className="relative mb-12 h-[520px] md:h-[600px] rounded-xl overflow-hidden shadow-xl">
 
-  {/* Slides */}
-  {carouselImages.map((image, index) => (
-    <div
-      key={index}
-      className={`absolute inset-0 transition-opacity duration-[1200ms] ease-in-out ${
-        index === currentImage ? "opacity-100 z-10" : "opacity-0 z-0"
-      }`}
-      style={{
-        backgroundImage: `url(${image})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-      }}
-    >
-      {/* Dark gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
-    </div>
-  ))}
+        {/* Slides */}
+        {carouselImages.map((image, index) => (
+          <div
+            key={index}
+            className={`absolute inset-0 transition-opacity duration-[1200ms] ease-in-out ${index === currentImage ? "opacity-100 z-10" : "opacity-0 z-0"
+              }`}
+            style={{
+              backgroundImage: `url(${image})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+            }}
+          >
+            {/* Dark gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+          </div>
+        ))}
 
-  {/* Content */}
-  <div className="relative z-20 h-full flex flex-col justify-center items-center text-center text-white px-6">
-    <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold mb-6 tracking-tight drop-shadow-2xl">
-      Discover{" "}
-      <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
-        Amazing Events
-      </span>
-    </h1>
+        {/* Content */}
+        <div className="relative z-20 h-full flex flex-col justify-center items-center text-center text-white px-6">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold mb-6 tracking-tight drop-shadow-2xl">
+            Discover{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
+              Amazing Events
+            </span>
+          </h1>
 
-    <p className="text-lg md:text-2xl max-w-2xl mb-10 text-gray-200 font-medium drop-shadow-lg">
-      Find and book tickets for the best events happening near you.
-    </p>
+          <p className="text-lg md:text-2xl max-w-2xl mb-10 text-gray-200 font-medium drop-shadow-lg">
+            Find and book tickets for the best events happening near you.
+          </p>
 
-    <Link
-      to="/register?role=host"
-      className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-10 rounded-full transition duration-300 transform hover:scale-105 shadow-xl"
-    >
-      Host an Event
-    </Link>
-  </div>
-</section>
+          <Link
+            to="/register?role=host"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-10 rounded-full transition duration-300 transform hover:scale-105 shadow-xl"
+          >
+            Host an Event
+          </Link>
+        </div>
+      </section>
 
 
 

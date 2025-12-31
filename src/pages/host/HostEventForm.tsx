@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { PlusIcon, TrashIcon } from "lucide-react";
+import { PlusIcon, TrashIcon, CheckCircleIcon } from "lucide-react";
 import axiosInstance from "../../api/axiosInstance";
 
 type TicketType = {
@@ -39,6 +39,7 @@ const HostEventForm: React.FC = () => {
   const [message, setMessage] = useState("");
   const [posterPreview, setPosterPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // LOAD EVENT WHEN EDITING
   useEffect(() => {
@@ -193,16 +194,15 @@ const HostEventForm: React.FC = () => {
         await axiosInstance.post(endpoint, formPayload);
       }
 
-      setMessage(
-        isEditMode
-          ? "✅ Event updated successfully!"
-          : "✅ Event created successfully! Awaiting approval."
-      );
-
-      setTimeout(
-        () => navigate("/host/dashboard/", { state: { refresh: true } }),
-        900
-      );
+      if (isEditMode) {
+        setMessage("✅ Event updated successfully!");
+        setTimeout(
+          () => navigate("/host/dashboard/", { state: { refresh: true } }),
+          900
+        );
+      } else {
+        setShowSuccessModal(true);
+      }
     } catch (err: any) {
       console.error("❌ Error:", err);
       setMessage(
@@ -398,6 +398,37 @@ const HostEventForm: React.FC = () => {
           </div>
         </form>
       </div>
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full text-center">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+              <CheckCircleIcon className="h-6 w-6 text-green-600" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Event Created Successfully!
+            </h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Your event has been submitted. Please navigate to 'My Events' to view it.
+              It will be visible to the public once approved by an admin.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => navigate("/host/dashboard/events", { state: { refresh: true } })}
+                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm"
+              >
+                Go to My Events
+              </button>
+              <button
+                onClick={() => navigate("/host/dashboard", { state: { refresh: true } })}
+                className="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm"
+              >
+                Back to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
