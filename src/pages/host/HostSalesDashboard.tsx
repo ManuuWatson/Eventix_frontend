@@ -179,7 +179,7 @@ const HostSalesDashboard = () => {
             </div>
             <div className="ml-3 sm:ml-4">
               <h3 className="text-gray-500 text-xs sm:text-sm">Service Fee (10%)</h3>
-              <p className="text-lg sm:text-2xl font-semibold">KSh {Math.round(displayServiceFee).toLocaleString()}</p>
+              <p className="text-lg sm:text-2xl font-semibold">KSh {displayServiceFee.toLocaleString()}</p>
             </div>
           </div>
         </div>
