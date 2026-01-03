@@ -79,7 +79,7 @@ const EventDetailsPage = () => {
 
   const eventDate = new Date(event.date);
   const formattedDate = eventDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-  const formattedTime = eventDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -121,7 +121,7 @@ const EventDetailsPage = () => {
             <div className="flex items-center text-gray-100 text-lg font-medium drop-shadow-md">
               <div className="bg-white/10 backdrop-blur-md p-2 rounded-lg flex items-center border border-white/20">
                 <CalendarIcon className="h-5 w-5 mr-2 text-indigo-300" />
-                <span>{formattedDate} • {formattedTime}</span>
+                <span>{formattedDate}</span>
               </div>
             </div>
           </div>
@@ -143,9 +143,8 @@ const EventDetailsPage = () => {
                   <CalendarIcon className="h-6 w-6 text-indigo-600" />
                 </div>
                 <div>
-                  <h3 className="font-medium">Date & Time</h3>
+                  <h3 className="font-medium">Date</h3>
                   <p className="text-gray-600">{formattedDate}</p>
-                  <p className="text-gray-600">{formattedTime}</p>
                 </div>
               </div>
 
