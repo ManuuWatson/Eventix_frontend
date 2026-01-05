@@ -9,6 +9,8 @@ import MpesaPaymentPage from "./pages/MpesaPaymentPage";
 import TicketConfirmationPage from "./pages/TicketConfirmationPage";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import HostDashboard from "./pages/host/HostDashboard";
 import UserDashboard from "./pages/user/UserDashboard";
 import AboutPage from "./pages/AboutPage";
@@ -76,6 +78,8 @@ function AppContent() {
         <Route path="events/:eventId" element={<EventDetailsPage />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
+        <Route path="forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="reset-password" element={<ResetPasswordPage />} />
         <Route path="about" element={<AboutPage />} />
         <Route path="contact" element={<ContactPage />} />
 

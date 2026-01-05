@@ -147,6 +147,12 @@ const LoginPage: React.FC = () => {
               "Sign In"
             )}
           </button>
+
+          <div className="flex justify-end">
+            <Link to="/forgot-password" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+              Forgot password?
+            </Link>
+          </div>
         </form>
       </div>
     </div>
