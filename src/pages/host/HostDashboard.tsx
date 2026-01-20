@@ -41,7 +41,7 @@ const HostDashboard: React.FC = () => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [hostEvents, setHostEvents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+
 
   // ✅ Fetch Host Events directly to get full stats (pending, past, revenue, etc.)
   useEffect(() => {
@@ -51,8 +51,6 @@ const HostDashboard: React.FC = () => {
         setHostEvents(response.data);
       } catch (error) {
         console.error("Error fetching host events:", error);
-      } finally {
-        setLoading(false);
       }
     };
     if (user && (location.pathname === "/host/dashboard" || location.pathname === "/host/dashboard/" || location.state?.refresh)) {
