@@ -1,5 +1,5 @@
 // src/context/AuthContext.tsx
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode } from "react";
 
 interface User {
   id: number;
@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return localStorage.getItem("eventix_token");
   });
 
-  const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [isAuthLoading] = useState(false);
 
   // Sync token to axios on mount/change is handled by axios interceptor reading localStorage,
   // implies we must keep localStorage up to date.
